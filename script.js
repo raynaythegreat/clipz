@@ -87,6 +87,10 @@ class ClipzAI {
             return;
         }
 
+        // Get selected clip duration
+        const selectedDuration = document.querySelector('input[name="clipDuration"]:checked').value;
+        const durationSeconds = parseInt(selectedDuration);
+
         this.showProgress('Analyzing video...', 20);
         
         try {
@@ -94,10 +98,10 @@ class ClipzAI {
             const videoInfo = await this.extractVideoInfo(url);
             this.currentVideo = videoInfo;
             this.displayVideoInfo(videoInfo);
-            this.showProgress('Generating clips...', 60);
+            this.showProgress(`Generating ${durationSeconds}s clips...`, 60);
             
-            // Generate clips
-            const clips = await this.generateClips(videoInfo);
+            // Generate clips with specified duration
+            const clips = await this.generateClips(videoInfo, durationSeconds);
             this.generatedClips = clips;
             this.displayClips(clips);
             
@@ -147,7 +151,7 @@ class ClipzAI {
         document.getElementById('videoInfo').classList.remove('hidden');
     }
 
-    async generateClips(videoInfo) {
+    async generateClips(videoInfo, durationSeconds = 30) {
         try {
             const response = await fetch('/api/generate-clips', {
                 method: 'POST',
@@ -156,7 +160,8 @@ class ClipzAI {
                 },
                 body: JSON.stringify({ 
                     videoUrl: videoInfo.url,
-                    videoInfo: videoInfo
+                    videoInfo: videoInfo,
+                    duration: durationSeconds
                 })
             });
             
@@ -170,36 +175,54 @@ class ClipzAI {
             // Fallback to mock data if API is not available
             return new Promise((resolve) => {
                 setTimeout(() => {
-                    const clips = [
-                        {
-                            id: 1,
-                            title: "Hook: The Secret to Viral Content",
-                            startTime: "0:15",
-                            endTime: "0:45",
-                            caption: "🔥 The secret to viral content isn't what you think! This technique changed everything for me...",
-                            thumbnail: "https://via.placeholder.com/300x200/ff6b6b/ffffff?text=Clip+1"
-                        },
-                        {
-                            id: 2,
-                            title: "Key Insight: Content Strategy",
-                            startTime: "3:20",
-                            endTime: "4:10",
-                            caption: "💡 Here's the content strategy that got me 1M+ views. Most creators are doing this wrong...",
-                            thumbnail: "https://via.placeholder.com/300x200/4ecdc4/ffffff?text=Clip+2"
-                        },
-                        {
-                            id: 3,
-                            title: "Call to Action: Engagement Tips",
-                            startTime: "8:45",
-                            endTime: "9:30",
-                            caption: "🚀 Want more engagement? Try this simple trick that increased my comments by 300%...",
-                            thumbnail: "https://via.placeholder.com/300x200/45b7d1/ffffff?text=Clip+3"
-                        }
-                    ];
+                    const clips = this.generateMockClips(videoInfo, durationSeconds);
                     resolve(clips);
-                }, 3000);
+                }, 2000);
             });
         }
+    }
+
+    generateMockClips(videoInfo, durationSeconds) {
+        const durationLabel = durationSeconds === 30 ? '30s' : durationSeconds === 60 ? '1m' : '2m';
+        
+        return [
+            {
+                id: 1,
+                title: `Hook: The Secret to Viral Content (${durationLabel})`,
+                startTime: "0:15",
+                endTime: this.formatTime(15 + durationSeconds),
+                duration: `${durationSeconds}s`,
+                caption: `🔥 The secret to viral content isn't what you think! This ${durationLabel} technique changed everything for me...`,
+                thumbnail: "https://via.placeholder.com/300x200/ff6b6b/ffffff?text=Clip+1",
+                viralScore: 0.85
+            },
+            {
+                id: 2,
+                title: `Key Insight: Content Strategy (${durationLabel})`,
+                startTime: "3:20",
+                endTime: this.formatTime(200 + durationSeconds),
+                duration: `${durationSeconds}s`,
+                caption: `💡 Here's the content strategy that got me 1M+ views. Most creators are doing this wrong... This ${durationLabel} clip reveals all!`,
+                thumbnail: "https://via.placeholder.com/300x200/4ecdc4/ffffff?text=Clip+2",
+                viralScore: 0.72
+            },
+            {
+                id: 3,
+                title: `Call to Action: Engagement Tips (${durationLabel})`,
+                startTime: "8:45",
+                endTime: this.formatTime(525 + durationSeconds),
+                duration: `${durationSeconds}s`,
+                caption: `🚀 Want more engagement? Try this simple trick that increased my comments by 300%... This ${durationLabel} method works every time!`,
+                thumbnail: "https://via.placeholder.com/300x200/45b7d1/ffffff?text=Clip+3",
+                viralScore: 0.68
+            }
+        ];
+    }
+
+    formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
     displayClips(clips) {
@@ -723,7 +746,13 @@ class ClipzAI {
                 this.closeLoginModal();
                 this.showCopyNotification('Login successful! Welcome back!');
             } else {
-                this.showCopyNotification(data.error || 'Login failed. Please check your credentials.', 'error');
+                if (data.requiresVerification) {
+                    this.closeLoginModal();
+                    this.showEmailVerificationModal(data.email);
+                    this.showCopyNotification('Please verify your email address before logging in.', 'warning');
+                } else {
+                    this.showCopyNotification(data.error || 'Login failed. Please check your credentials.', 'error');
+                }
             }
         } catch (error) {
             console.error('Login error:', error);
@@ -781,12 +810,18 @@ class ClipzAI {
             const data = await response.json();
             
             if (response.ok) {
-                this.currentUser = data.user;
-                this.authToken = data.token;
-                localStorage.setItem('clipz_auth_token', data.token);
-                this.updateAuthUI();
-                this.closeSignupModal();
-                this.showCopyNotification('Account created successfully! Welcome to Clipz AI!');
+                if (data.requiresVerification) {
+                    this.closeSignupModal();
+                    this.showEmailVerificationModal(data.email);
+                    this.showCopyNotification('Account created! Please check your email to verify your account.', 'success');
+                } else {
+                    this.currentUser = data.user;
+                    this.authToken = data.token;
+                    localStorage.setItem('clipz_auth_token', data.token);
+                    this.updateAuthUI();
+                    this.closeSignupModal();
+                    this.showCopyNotification('Account created successfully! Welcome to Clipz AI!');
+                }
             } else {
                 this.showCopyNotification(data.error || 'Registration failed. Please try again.', 'error');
             }
@@ -1312,6 +1347,116 @@ class ClipzAI {
         }
     }
 
+    // Email verification functions
+    showEmailVerificationModal(email) {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'emailVerificationModal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-envelope"></i> Verify Your Email</h3>
+                    <span class="close" onclick="clipzAI.closeEmailVerificationModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="verification-content">
+                        <div class="verification-icon">
+                            <i class="fas fa-envelope-open-text"></i>
+                        </div>
+                        <h4>Check Your Email</h4>
+                        <p>We've sent a verification link to:</p>
+                        <p class="email-address">${email}</p>
+                        <p>Click the link in the email to verify your account and start using Clipz AI!</p>
+                        
+                        <div class="verification-actions">
+                            <button class="btn btn-primary" onclick="clipzAI.resendVerificationEmail('${email}')">
+                                <i class="fas fa-paper-plane"></i> Resend Email
+                            </button>
+                            <button class="btn btn-secondary" onclick="clipzAI.closeEmailVerificationModal()">
+                                <i class="fas fa-times"></i> Close
+                            </button>
+                        </div>
+                        
+                        <div class="verification-help">
+                            <p><i class="fas fa-info-circle"></i> <strong>Didn't receive the email?</strong></p>
+                            <ul>
+                                <li>Check your spam/junk folder</li>
+                                <li>Make sure the email address is correct</li>
+                                <li>Wait a few minutes and try resending</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeEmailVerificationModal() {
+        const modal = document.getElementById('emailVerificationModal');
+        if (modal) {
+            modal.remove();
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    async resendVerificationEmail(email) {
+        try {
+            const response = await fetch('/api/resend-verification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                this.showCopyNotification('Verification email sent successfully!', 'success');
+            } else {
+                this.showCopyNotification(data.error || 'Failed to resend verification email', 'error');
+            }
+        } catch (error) {
+            console.error('Resend verification error:', error);
+            this.showCopyNotification('Failed to resend verification email', 'error');
+        }
+    }
+
+    // Handle email verification from URL
+    async handleEmailVerification() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        
+        if (token) {
+            try {
+                const response = await fetch(`/api/verify-email?token=${token}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Store user data and token
+                    this.currentUser = data.user;
+                    this.authToken = data.token;
+                    localStorage.setItem('clipz_auth_token', data.token);
+                    this.updateAuthUI();
+                    
+                    // Show success message
+                    this.showCopyNotification('Email verified successfully! Welcome to Clipz AI!', 'success');
+                    
+                    // Clean up URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } else {
+                    this.showCopyNotification(data.error || 'Email verification failed', 'error');
+                }
+            } catch (error) {
+                console.error('Email verification error:', error);
+                this.showCopyNotification('Email verification failed', 'error');
+            }
+        }
+    }
+
     showProgress(text, percentage) {
         document.getElementById('progressText').textContent = text;
         document.getElementById('progressFill').style.width = percentage + '%';
@@ -1350,4 +1495,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('analyzeBtn').click();
         }
     });
+    
+    // Handle email verification from URL
+    clipzAI.handleEmailVerification();
+    
+    // Initialize authentication
+    clipzAI.checkAuthStatus();
 });

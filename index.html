@@ -92,6 +92,37 @@
                     </button>
                 </div>
 
+                <!-- Clip Duration Selector -->
+                <div class="duration-selector">
+                    <h3><i class="fas fa-clock"></i> Choose Clip Duration</h3>
+                    <div class="duration-options">
+                        <label class="duration-option">
+                            <input type="radio" name="clipDuration" value="30" checked>
+                            <span class="duration-card">
+                                <i class="fas fa-stopwatch"></i>
+                                <span class="duration-time">30s</span>
+                                <span class="duration-label">Quick Clips</span>
+                            </span>
+                        </label>
+                        <label class="duration-option">
+                            <input type="radio" name="clipDuration" value="60">
+                            <span class="duration-card">
+                                <i class="fas fa-clock"></i>
+                                <span class="duration-time">1m</span>
+                                <span class="duration-label">Standard Clips</span>
+                            </span>
+                        </label>
+                        <label class="duration-option">
+                            <input type="radio" name="clipDuration" value="120">
+                            <span class="duration-card">
+                                <i class="fas fa-hourglass-half"></i>
+                                <span class="duration-time">2m</span>
+                                <span class="duration-label">Extended Clips</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
                 <div id="videoInfo" class="video-info hidden">
                     <div class="video-preview">
                         <img id="thumbnail" src="" alt="Video thumbnail">

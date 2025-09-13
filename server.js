@@ -10,6 +10,8 @@ const cheerio = require('cheerio');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +21,89 @@ const JWT_SECRET = process.env.JWT_SECRET || 'clipz-ai-secret-key-2024';
 const users = new Map();
 const userClips = new Map();
 const userTokens = new Map();
+const emailVerifications = new Map(); // Store email verification tokens
+
+// Email configuration
+const emailTransporter = nodemailer.createTransporter({
+    service: 'gmail', // You can use other services like SendGrid, Mailgun, etc.
+    auth: {
+        user: process.env.EMAIL_USER || 'your-email@gmail.com',
+        pass: process.env.EMAIL_PASS || 'your-app-password'
+    }
+});
+
+// Email verification helper functions
+async function sendVerificationEmail(email, username, verificationToken) {
+    const verificationUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+    
+    const mailOptions = {
+        from: process.env.EMAIL_USER || 'your-email@gmail.com',
+        to: email,
+        subject: 'Welcome to Clipz AI - Verify Your Email',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; text-align: center;">
+                    <h1 style="color: white; margin: 0; font-size: 28px;">🎬 Welcome to Clipz AI!</h1>
+                    <p style="color: white; margin: 10px 0 0 0; font-size: 16px;">Hi ${username}, thanks for joining us!</p>
+                </div>
+                
+                <div style="padding: 30px; background: #f8f9fa; border-radius: 10px; margin-top: 20px;">
+                    <h2 style="color: #333; margin-top: 0;">Verify Your Email Address</h2>
+                    <p style="color: #666; line-height: 1.6;">
+                        To complete your account setup and start generating viral clips, please verify your email address by clicking the button below:
+                    </p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${verificationUrl}" 
+                           style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                  color: white; 
+                                  padding: 15px 30px; 
+                                  text-decoration: none; 
+                                  border-radius: 25px; 
+                                  font-weight: bold; 
+                                  display: inline-block;
+                                  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                            ✅ Verify Email Address
+                        </a>
+                    </div>
+                    
+                    <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                        If the button doesn't work, you can also copy and paste this link into your browser:<br>
+                        <a href="${verificationUrl}" style="color: #667eea; word-break: break-all;">${verificationUrl}</a>
+                    </p>
+                    
+                    <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                        <h3 style="color: #1976d2; margin-top: 0;">🚀 What's Next?</h3>
+                        <ul style="color: #666; line-height: 1.6;">
+                            <li>Generate viral clips from any video URL</li>
+                            <li>Connect your social media accounts</li>
+                            <li>Upload directly to TikTok, Instagram, and YouTube</li>
+                            <li>Access your personalized dashboard</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
+                    <p>This email was sent to ${email}. If you didn't create an account with Clipz AI, you can safely ignore this email.</p>
+                    <p>© 2024 Clipz AI. All rights reserved.</p>
+                </div>
+            </div>
+        `
+    };
+
+    try {
+        await emailTransporter.sendMail(mailOptions);
+        console.log(`Verification email sent to ${email}`);
+        return true;
+    } catch (error) {
+        console.error('Error sending verification email:', error);
+        return false;
+    }
+}
+
+function generateVerificationToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
 
 // Middleware
 app.use(cors());
@@ -63,33 +148,155 @@ app.post('/api/register', async (req, res) => {
         
         const hashedPassword = await bcrypt.hash(password, 10);
         const userId = uuidv4();
+        const verificationToken = generateVerificationToken();
         
         const user = {
             id: userId,
             email,
             username,
             password: hashedPassword,
+            isVerified: false,
             createdAt: new Date().toISOString()
         };
         
+        // Store user (unverified)
         users.set(email, user);
         userClips.set(userId, []);
         
-        const token = jwt.sign({ userId, email, username }, JWT_SECRET, { expiresIn: '30d' });
+        // Store verification token
+        emailVerifications.set(verificationToken, {
+            email,
+            userId,
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        });
+        
+        // Send verification email
+        const emailSent = await sendVerificationEmail(email, username, verificationToken);
+        
+        if (!emailSent) {
+            // If email fails, clean up the user
+            users.delete(email);
+            userClips.delete(userId);
+            emailVerifications.delete(verificationToken);
+            return res.status(500).json({ error: 'Failed to send verification email' });
+        }
         
         res.json({
-            token,
-            user: {
-                id: userId,
-                email,
-                username,
-                createdAt: user.createdAt
-            }
+            message: 'Account created successfully! Please check your email to verify your account.',
+            email: email,
+            requiresVerification: true
         });
         
     } catch (error) {
         console.error('Registration error:', error);
         res.status(500).json({ error: 'Registration failed' });
+    }
+});
+
+// Email verification endpoint
+app.get('/api/verify-email', async (req, res) => {
+    try {
+        const { token } = req.query;
+        
+        if (!token) {
+            return res.status(400).json({ error: 'Verification token is required' });
+        }
+        
+        const verification = emailVerifications.get(token);
+        
+        if (!verification) {
+            return res.status(400).json({ error: 'Invalid or expired verification token' });
+        }
+        
+        // Check if token is expired
+        if (new Date() > verification.expiresAt) {
+            emailVerifications.delete(token);
+            return res.status(400).json({ error: 'Verification token has expired' });
+        }
+        
+        // Find and update user
+        const user = users.get(verification.email);
+        if (!user) {
+            return res.status(400).json({ error: 'User not found' });
+        }
+        
+        // Mark user as verified
+        user.isVerified = true;
+        users.set(verification.email, user);
+        
+        // Clean up verification token
+        emailVerifications.delete(token);
+        
+        // Generate JWT token for immediate login
+        const jwtToken = jwt.sign(
+            { userId: user.id, email: user.email, username: user.username },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+        
+        res.json({
+            message: 'Email verified successfully!',
+            token: jwtToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                isVerified: true,
+                createdAt: user.createdAt
+            }
+        });
+        
+    } catch (error) {
+        console.error('Email verification error:', error);
+        res.status(500).json({ error: 'Email verification failed' });
+    }
+});
+
+// Resend verification email endpoint
+app.post('/api/resend-verification', async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+        
+        const user = users.get(email);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        if (user.isVerified) {
+            return res.status(400).json({ error: 'Email is already verified' });
+        }
+        
+        // Generate new verification token
+        const verificationToken = generateVerificationToken();
+        
+        // Store new verification token
+        emailVerifications.set(verificationToken, {
+            email,
+            userId: user.id,
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        });
+        
+        // Send verification email
+        const emailSent = await sendVerificationEmail(email, user.username, verificationToken);
+        
+        if (!emailSent) {
+            emailVerifications.delete(verificationToken);
+            return res.status(500).json({ error: 'Failed to send verification email' });
+        }
+        
+        res.json({
+            message: 'Verification email sent successfully!'
+        });
+        
+    } catch (error) {
+        console.error('Resend verification error:', error);
+        res.status(500).json({ error: 'Failed to resend verification email' });
     }
 });
 
@@ -111,6 +318,15 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
         
+        // Check if email is verified
+        if (!user.isVerified) {
+            return res.status(401).json({ 
+                error: 'Please verify your email address before logging in',
+                requiresVerification: true,
+                email: user.email
+            });
+        }
+        
         const token = jwt.sign({ userId: user.id, email, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
         
         res.json({
@@ -119,6 +335,7 @@ app.post('/api/login', async (req, res) => {
                 id: user.id,
                 email,
                 username: user.username,
+                isVerified: user.isVerified,
                 createdAt: user.createdAt
             }
         });
