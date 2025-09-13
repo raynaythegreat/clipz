@@ -1,4 +1,4 @@
-# Clipz AI - Setup Guide for Real Social Media Connections
+# Clipz AI v2.0 - Setup Guide for Real Social Media Connections
 
 ## 🚀 Quick Start
 

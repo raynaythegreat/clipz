@@ -1,6 +1,6 @@
-# Clipz AI - Viral Clips Generator
+# Clipz AI - Viral Clips Generator v2.0
 
-An AI-powered web application that automatically generates viral clips from videos with AI-generated captions, user account management, and social media integration.
+An AI-powered web application that automatically generates viral clips from videos with real social media integration, OAuth authentication, and comprehensive user management.
 
 ## ✨ Features
 
@@ -31,11 +31,12 @@ An AI-powered web application that automatically generates viral clips from vide
 - **Copy Captions**: One-click copy for fast pasting to social media
 - **Delete Clips**: Remove clips from your history
 
-### 📱 **Social Media Integration**
-- **Direct Upload**: Upload to TikTok, Instagram, and YouTube Shorts
-- **OAuth Integration**: Secure social media account connections
-- **Simultaneous Upload**: Upload to multiple platforms at once
-- **Connection Management**: Connect and disconnect social accounts
+### 📱 **Real Social Media Integration**
+- **OAuth 2.0 Authentication**: Real TikTok, Instagram, and YouTube API integration
+- **Direct Upload**: Upload clips directly to connected social media accounts
+- **Secure Token Management**: Professional token storage and refresh
+- **API Integration**: Real social media platform connections
+- **Connection Management**: Connect and disconnect social accounts securely
 
 ### 🎨 **Modern UI/UX**
 - **Galaxy Theme**: Beautiful animated galaxy background with stars
@@ -46,30 +47,39 @@ An AI-powered web application that automatically generates viral clips from vide
 
 ## Quick Start
 
-### Option 1: Simple HTML Version (No Installation Required)
+### ⚠️ **Important**: Server Required for Full Functionality
 
-1. Clone the repository:
+This application now requires a running server for all features including user authentication and social media connections.
+
+### Installation Steps
+
+1. **Install Node.js** (Required):
+   - Download from: https://nodejs.org/
+   - Choose LTS version (recommended)
+
+2. **Clone the repository**:
 ```bash
 git clone https://github.com/raynaythegreat/clipz.git
 cd clipz
 ```
 
-2. Open `index.html` in your web browser - that's it!
-
-### Option 2: Full Backend Version (Advanced Features)
-
-1. Install Node.js (if not already installed)
-2. Install dependencies:
+3. **Install dependencies**:
 ```bash
 npm install
 ```
 
-3. Start the server:
+4. **Set up environment variables** (See SETUP_GUIDE.md for details):
+```bash
+# Create .env file with your API credentials
+# Required for social media integration
+```
+
+5. **Start the server**:
 ```bash
 npm start
 ```
 
-4. Open http://localhost:3000 in your browser
+6. **Open your browser**: http://localhost:3000
 
 ## 🚀 How to Use
 
@@ -123,9 +133,12 @@ npm start
 - **Node.js with Express**: Robust server framework
 - **JWT Authentication**: Secure 30-day token-based authentication
 - **Password Hashing**: bcryptjs for secure password storage
+- **Email Verification**: Nodemailer for account verification
+- **Real OAuth Integration**: TikTok, Instagram, YouTube API connections
 - **Video Processing**: FFmpeg for video analysis and clip generation
 - **Social Media Automation**: Puppeteer for headless browser automation
 - **YouTube Integration**: ytdl-core for video extraction
+- **Token Management**: Secure OAuth token storage and refresh
 - **In-Memory Storage**: User data and clips storage (production-ready for database integration)
 
 ### **Security Features**
@@ -161,15 +174,44 @@ npm start
 3. Start the server: `npm start`
 4. Access at `http://localhost:3000`
 
-## Environment Variables (For Backend)
+## Environment Variables (Required)
 
-Create a `.env` file for advanced features:
+Create a `.env` file with the following variables:
+
+### **Required for Basic Functionality**
+```
+JWT_SECRET=your-super-secret-jwt-key-here
+BASE_URL=http://localhost:3000
+PORT=3000
+```
+
+### **Required for Email Verification**
+```
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+```
+
+### **Required for Social Media Integration**
+```
+# TikTok API
+TIKTOK_CLIENT_KEY=your-tiktok-client-key
+TIKTOK_CLIENT_SECRET=your-tiktok-client-secret
+
+# Instagram API
+INSTAGRAM_APP_ID=your-instagram-app-id
+INSTAGRAM_APP_SECRET=your-instagram-app-secret
+
+# YouTube API
+YOUTUBE_CLIENT_ID=your-youtube-client-id
+YOUTUBE_CLIENT_SECRET=your-youtube-client-secret
+```
+
+### **Optional**
 ```
 OPENAI_API_KEY=your_openai_api_key
-TIKTOK_USERNAME=your_tiktok_username
-INSTAGRAM_USERNAME=your_instagram_username
-YOUTUBE_CHANNEL_ID=your_youtube_channel_id
 ```
+
+**📖 See SETUP_GUIDE.md for detailed setup instructions**
 
 ## Contributing
 
@@ -189,15 +231,17 @@ If you encounter any issues or have questions, please open an issue on GitHub.
 ## 🎯 Key Features Summary
 
 ### **✅ What's Included**
-- ✅ **User Authentication**: Secure registration and login system
+- ✅ **Real OAuth Integration**: Actual TikTok, Instagram, YouTube API connections
+- ✅ **User Authentication**: Secure registration and login with email verification
 - ✅ **Dashboard Interface**: Comprehensive account management
-- ✅ **Social Media Integration**: Connect TikTok, Instagram, YouTube
+- ✅ **Social Media Integration**: Real platform connections with secure token management
 - ✅ **Clip Management**: Save, delete, and organize your clips
 - ✅ **User Preferences**: Customize how clips are saved
 - ✅ **Viral Analysis**: AI-powered viral content detection
 - ✅ **Modern UI**: Galaxy theme with glassmorphism design
 - ✅ **Responsive Design**: Works on all devices
 - ✅ **Real-time Updates**: Live status and progress tracking
+- ✅ **Production Ready**: Full server-side implementation
 
 ### **🔮 Future Enhancements**
 - Database integration for production use
@@ -209,4 +253,21 @@ If you encounter any issues or have questions, please open an issue on GitHub.
 
 ---
 
-**🎉 Ready to Use**: This application is production-ready with user authentication, secure data handling, and comprehensive clip management features!
+**🎉 Ready to Use**: This application is production-ready with real OAuth integration, secure user authentication, email verification, and comprehensive social media management features!
+
+## 📋 Version History
+
+### **v2.0.0** (Current)
+- ✅ **Real OAuth Integration**: Actual TikTok, Instagram, YouTube API connections
+- ✅ **Email Verification**: Complete email verification system
+- ✅ **Production Ready**: Full server-side implementation
+- ✅ **Removed Offline Mode**: All functionality requires server
+- ✅ **Enhanced Security**: Professional token management
+- ✅ **Comprehensive Setup Guide**: Detailed installation instructions
+
+### **v1.0.0** (Previous)
+- ✅ Basic video processing and clip generation
+- ✅ User authentication system
+- ✅ Social media integration (simulated)
+- ✅ Dashboard and clip management
+- ✅ Galaxy theme UI

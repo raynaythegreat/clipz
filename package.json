@@ -1,7 +1,7 @@
 {
   "name": "clipz-ai",
-  "version": "1.0.0",
-  "description": "AI-powered viral clips generator",
+  "version": "2.0.0",
+  "description": "AI-powered viral clips generator with real social media integration",
   "main": "server.js",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
@@ -36,7 +36,7 @@
     "nodemon": "^3.0.2",
     "concurrently": "^8.2.2"
   },
-  "keywords": ["ai", "video", "clips", "social-media", "automation"],
+  "keywords": ["ai", "video", "clips", "social-media", "automation", "oauth", "tiktok", "instagram", "youtube", "viral-content"],
   "author": "raynaythegreat",
   "license": "MIT"
 }
