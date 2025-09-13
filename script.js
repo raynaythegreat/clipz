@@ -63,6 +63,20 @@ class ClipzAI {
             e.preventDefault();
             this.switchToLogin();
         });
+        
+        // Add click outside to close modal
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                this.closeAllModals();
+            }
+        });
+        
+        // Add escape key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeAllModals();
+            }
+        });
     }
 
     async analyzeVideo() {
@@ -445,7 +459,7 @@ class ClipzAI {
         }
     }
 
-    showCopyNotification(message) {
+    showCopyNotification(message, type = 'success') {
         // Remove existing notification
         const existingNotification = document.querySelector('.copy-notification');
         if (existingNotification) {
@@ -454,16 +468,21 @@ class ClipzAI {
         
         // Create new notification
         const notification = document.createElement('div');
-        notification.className = 'copy-notification';
+        notification.className = `copy-notification ${type}`;
         notification.textContent = message;
         document.body.appendChild(notification);
         
-        // Remove after 3 seconds
+        // Remove after 4 seconds
         setTimeout(() => {
             if (notification.parentNode) {
-                notification.remove();
+                notification.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
             }
-        }, 3000);
+        }, 4000);
     }
 
     // Authentication Methods
@@ -525,19 +544,40 @@ class ClipzAI {
     }
 
     showLoginModal() {
+        this.closeAllModals();
         document.getElementById('loginModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
     }
 
     closeLoginModal() {
         document.getElementById('loginModal').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        this.clearLoginForm();
     }
 
     showSignupModal() {
+        this.closeAllModals();
         document.getElementById('signupModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
     }
 
     closeSignupModal() {
         document.getElementById('signupModal').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        this.clearSignupForm();
+    }
+
+    closeAllModals() {
+        this.closeLoginModal();
+        this.closeSignupModal();
+    }
+
+    clearLoginForm() {
+        document.getElementById('loginForm').reset();
+    }
+
+    clearSignupForm() {
+        document.getElementById('signupForm').reset();
     }
 
     switchToSignup() {
@@ -553,8 +593,25 @@ class ClipzAI {
     async login(event) {
         event.preventDefault();
         
-        const email = document.getElementById('loginEmail').value;
+        const email = document.getElementById('loginEmail').value.trim();
         const password = document.getElementById('loginPassword').value;
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        
+        // Basic validation
+        if (!email || !password) {
+            this.showCopyNotification('Please fill in all fields');
+            return;
+        }
+        
+        if (!this.isValidEmail(email)) {
+            this.showCopyNotification('Please enter a valid email address');
+            return;
+        }
+        
+        // Show loading state
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+        submitBtn.disabled = true;
         
         try {
             const response = await fetch('/api/login', {
@@ -573,22 +630,53 @@ class ClipzAI {
                 localStorage.setItem('clipz_auth_token', data.token);
                 this.updateAuthUI();
                 this.closeLoginModal();
-                this.showCopyNotification('Login successful!');
+                this.showCopyNotification('Login successful! Welcome back!');
             } else {
-                this.showCopyNotification(data.error || 'Login failed');
+                this.showCopyNotification(data.error || 'Login failed. Please check your credentials.', 'error');
             }
         } catch (error) {
             console.error('Login error:', error);
-            this.showCopyNotification('Login failed. Please try again.');
+            this.showCopyNotification('Login failed. Please check your internet connection and try again.', 'error');
+        } finally {
+            // Reset button state
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         }
     }
 
     async signup(event) {
         event.preventDefault();
         
-        const username = document.getElementById('signupUsername').value;
-        const email = document.getElementById('signupEmail').value;
+        const username = document.getElementById('signupUsername').value.trim();
+        const email = document.getElementById('signupEmail').value.trim();
         const password = document.getElementById('signupPassword').value;
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        
+        // Basic validation
+        if (!username || !email || !password) {
+            this.showCopyNotification('Please fill in all fields');
+            return;
+        }
+        
+        if (username.length < 3) {
+            this.showCopyNotification('Username must be at least 3 characters long');
+            return;
+        }
+        
+        if (!this.isValidEmail(email)) {
+            this.showCopyNotification('Please enter a valid email address');
+            return;
+        }
+        
+        if (password.length < 6) {
+            this.showCopyNotification('Password must be at least 6 characters long');
+            return;
+        }
+        
+        // Show loading state
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+        submitBtn.disabled = true;
         
         try {
             const response = await fetch('/api/register', {
@@ -607,13 +695,17 @@ class ClipzAI {
                 localStorage.setItem('clipz_auth_token', data.token);
                 this.updateAuthUI();
                 this.closeSignupModal();
-                this.showCopyNotification('Account created successfully!');
+                this.showCopyNotification('Account created successfully! Welcome to Clipz AI!');
             } else {
-                this.showCopyNotification(data.error || 'Registration failed');
+                this.showCopyNotification(data.error || 'Registration failed. Please try again.', 'error');
             }
         } catch (error) {
             console.error('Signup error:', error);
-            this.showCopyNotification('Registration failed. Please try again.');
+            this.showCopyNotification('Registration failed. Please check your internet connection and try again.', 'error');
+        } finally {
+            // Reset button state
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         }
     }
 
@@ -621,8 +713,19 @@ class ClipzAI {
         this.currentUser = null;
         this.authToken = null;
         localStorage.removeItem('clipz_auth_token');
+        this.connectedPlatforms = {
+            tiktok: false,
+            instagram: false,
+            youtube: false
+        };
         this.updateAuthUI();
+        this.updateConnectionUI();
         this.showCopyNotification('Logged out successfully');
+    }
+    
+    isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
     }
 
     getAuthHeaders() {
