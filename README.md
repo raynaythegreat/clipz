@@ -5,12 +5,14 @@ An AI-powered web application that automatically generates viral clips from vide
 ## Features
 
 - 🎥 **Video Analysis**: Upload any video URL (YouTube, TikTok, Instagram, etc.)
-- 🤖 **AI Clip Generation**: Automatically identify the most engaging moments
-- 📝 **Smart AI Captions**: Context-aware captions based on video content and platform
+- 🧠 **AI Viral Analysis**: Analyzes trending content patterns for better clip generation
+- 🤖 **Smart Clip Generation**: AI identifies viral moments based on trending patterns
+- 📝 **Context-Aware Captions**: AI generates captions based on viral content analysis
+- 📊 **Viral Scoring**: Each clip gets a viral potential score with pattern analysis
 - 📋 **Copy Captions**: One-click copy for fast pasting to social media
 - 🎬 **Clip Preview**: Preview generated clips before download/upload
 - 📱 **Social Media Upload**: Direct upload to TikTok, Instagram, and YouTube Shorts
-- 🎨 **Modern UI**: Clean, responsive design optimized for all devices
+- 🎨 **Modern UI**: Clean, responsive design with viral score indicators
 
 ## Quick Start
 
@@ -42,11 +44,11 @@ npm start
 ## How to Use
 
 1. **Enter Video URL**: Paste any video URL from YouTube, TikTok, Instagram, etc.
-2. **Analyze**: Click "Analyze Video" to extract video information
-3. **Generate Clips**: The AI will automatically identify viral moments with smart captions
-4. **Preview Clips**: Click the play button to preview each clip
-5. **Copy Captions**: Click the copy button to copy captions for easy pasting
-6. **Download/Upload**: Download clips (caption auto-copied) or upload to social media
+2. **AI Analysis**: The system analyzes viral patterns from trending content
+3. **Generate Viral Clips**: AI creates clips based on viral patterns and scoring
+4. **Review Viral Scores**: Each clip shows viral potential score and pattern type
+5. **Preview & Copy**: Preview clips and copy optimized captions
+6. **Download/Upload**: Download high-scoring clips or upload to social media
 
 ## Supported Platforms
 

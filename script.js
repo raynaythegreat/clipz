@@ -142,7 +142,20 @@ class ClipzAI {
 
         clips.forEach(clip => {
             const clipCard = document.createElement('div');
-            clipCard.className = 'clip-card';
+            
+            // Apply viral score styling
+            let viralClass = '';
+            if (clip.viralScore) {
+                if (clip.viralScore >= 0.8) {
+                    viralClass = 'high-viral';
+                } else if (clip.viralScore >= 0.6) {
+                    viralClass = 'medium-viral';
+                } else {
+                    viralClass = 'low-viral';
+                }
+            }
+            
+            clipCard.className = `clip-card ${viralClass}`;
             clipCard.innerHTML = `
                 <button class="preview-btn" onclick="clipzAI.previewClip(${clip.id})" title="Preview Clip">
                     <i class="fas fa-play"></i>
@@ -157,8 +170,25 @@ class ClipzAI {
                         <i class="fas fa-copy"></i>
                     </button>
                 </div>
-                <div class="clip-timing">
-                    <small>${clip.startTime} - ${clip.endTime}</small>
+                <div class="clip-meta">
+                    <div class="clip-timing">
+                        <small>${clip.startTime} - ${clip.endTime}</small>
+                    </div>
+                    ${clip.viralScore ? `
+                        <div class="viral-score">
+                            <span class="viral-label">Viral Score:</span>
+                            <span class="viral-value">${Math.round(clip.viralScore * 100)}%</span>
+                            <div class="viral-bar">
+                                <div class="viral-fill" style="width: ${clip.viralScore * 100}%"></div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${clip.pattern ? `
+                        <div class="viral-pattern">
+                            <span class="pattern-label">Pattern:</span>
+                            <span class="pattern-value">${clip.pattern.type.replace('_', ' ').toUpperCase()}</span>
+                        </div>
+                    ` : ''}
                 </div>
                 <div class="clip-actions">
                     <button class="btn btn-small btn-download" onclick="clipzAI.downloadClip(${clip.id})">

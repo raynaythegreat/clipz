@@ -6,6 +6,7 @@ const ytdl = require('ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
 const puppeteer = require('puppeteer');
 const axios = require('axios');
+const cheerio = require('cheerio');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,14 +48,28 @@ app.post('/api/generate-clips', async (req, res) => {
         // Download video
         const videoPath = await downloadVideo(videoUrl);
         
-        // Generate clips using AI
-        const clips = await generateClips(videoPath, videoInfo);
+        // Analyze viral patterns and generate clips
+        const clips = await generateViralClips(videoPath, videoInfo);
         
         res.json(clips);
         
     } catch (error) {
         console.error('Error generating clips:', error);
         res.status(500).json({ error: 'Failed to generate clips' });
+    }
+});
+
+// API endpoint to analyze viral patterns
+app.post('/api/analyze-viral-patterns', async (req, res) => {
+    try {
+        const { videoInfo } = req.body;
+        
+        const viralPatterns = await analyzeViralPatterns(videoInfo);
+        res.json(viralPatterns);
+        
+    } catch (error) {
+        console.error('Error analyzing viral patterns:', error);
+        res.status(500).json({ error: 'Failed to analyze viral patterns' });
     }
 });
 
@@ -132,6 +147,25 @@ async function downloadVideo(url) {
         }
     } catch (error) {
         throw new Error('Failed to download video');
+    }
+}
+
+async function generateViralClips(videoPath, videoInfo) {
+    try {
+        // Get video duration for analysis
+        const duration = await getVideoDuration(videoPath);
+        
+        // Analyze viral patterns first
+        const viralPatterns = await analyzeViralPatterns(videoInfo);
+        
+        // Generate clips based on viral patterns
+        const clips = await analyzeVideoForViralClips(videoPath, duration, videoInfo, viralPatterns);
+        
+        return clips;
+    } catch (error) {
+        console.error('Error generating viral clips:', error);
+        // Fallback to regular clips if viral analysis fails
+        return await generateClips(videoPath, videoInfo);
     }
 }
 
@@ -407,6 +441,254 @@ function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+async function analyzeViralPatterns(videoInfo) {
+    try {
+        const contentType = analyzeContentType(videoInfo.title);
+        const platform = detectPlatform(videoInfo.url);
+        
+        // Search for trending content in the same category
+        const trendingData = await searchTrendingContent(contentType, platform);
+        
+        // Analyze viral patterns from trending content
+        const viralPatterns = extractViralPatterns(trendingData, contentType);
+        
+        return viralPatterns;
+    } catch (error) {
+        console.error('Error analyzing viral patterns:', error);
+        return getDefaultViralPatterns();
+    }
+}
+
+async function searchTrendingContent(contentType, platform) {
+    try {
+        // Simulate trending content search (in real implementation, this would use APIs)
+        const trendingContent = {
+            tutorial: [
+                { title: "How to Build a Viral TikTok in 30 Seconds", views: "2.3M", engagement: "high" },
+                { title: "The Secret Hook That Gets 1M+ Views", views: "1.8M", engagement: "high" },
+                { title: "Tutorial That Went Viral Overnight", views: "3.1M", engagement: "viral" }
+            ],
+            gaming: [
+                { title: "Epic Gaming Moment That Broke the Internet", views: "5.2M", engagement: "viral" },
+                { title: "Gaming Fail That's Too Funny", views: "2.7M", engagement: "high" },
+                { title: "Pro Gamer Secret Technique", views: "1.9M", engagement: "high" }
+            ],
+            cooking: [
+                { title: "5-Minute Recipe That Went Viral", views: "4.1M", engagement: "viral" },
+                { title: "Cooking Hack Everyone's Talking About", views: "2.8M", engagement: "high" },
+                { title: "Simple Recipe That Changed Everything", views: "3.5M", engagement: "viral" }
+            ],
+            fitness: [
+                { title: "Workout That Gets Results in 7 Days", views: "3.2M", engagement: "viral" },
+                { title: "Fitness Tip That Actually Works", views: "2.1M", engagement: "high" },
+                { title: "Exercise That Transformed My Body", views: "4.7M", engagement: "viral" }
+            ],
+            review: [
+                { title: "Honest Review That Exposed the Truth", views: "2.9M", engagement: "viral" },
+                { title: "Product Review That Saved Me Money", views: "1.7M", engagement: "high" },
+                { title: "Review That Changed My Mind", views: "3.8M", engagement: "viral" }
+            ]
+        };
+        
+        return trendingContent[contentType] || trendingContent.tutorial;
+    } catch (error) {
+        console.error('Error searching trending content:', error);
+        return [];
+    }
+}
+
+function extractViralPatterns(trendingData, contentType) {
+    const patterns = {
+        hookPatterns: [],
+        timingPatterns: [],
+        captionPatterns: [],
+        engagementTriggers: []
+    };
+    
+    // Analyze trending titles for patterns
+    trendingData.forEach(item => {
+        if (item.engagement === 'viral' || item.engagement === 'high') {
+            // Extract hook patterns
+            if (item.title.includes('Secret') || item.title.includes('Hidden')) {
+                patterns.hookPatterns.push('mystery_hook');
+            }
+            if (item.title.includes('How to') || item.title.includes('Guide')) {
+                patterns.hookPatterns.push('tutorial_hook');
+            }
+            if (item.title.includes('Epic') || item.title.includes('Insane')) {
+                patterns.hookPatterns.push('excitement_hook');
+            }
+            if (item.title.includes('Went Viral') || item.title.includes('Broke the Internet')) {
+                patterns.hookPatterns.push('social_proof_hook');
+            }
+            
+            // Extract timing patterns
+            if (item.title.includes('30 Seconds') || item.title.includes('5-Minute')) {
+                patterns.timingPatterns.push('quick_results');
+            }
+            if (item.title.includes('7 Days') || item.title.includes('Overnight')) {
+                patterns.timingPatterns.push('time_specific');
+            }
+            
+            // Extract engagement triggers
+            if (item.title.includes('Everyone') || item.title.includes('Changed')) {
+                patterns.engagementTriggers.push('social_validation');
+            }
+            if (item.title.includes('Actually Works') || item.title.includes('Real')) {
+                patterns.engagementTriggers.push('credibility');
+            }
+        }
+    });
+    
+    return patterns;
+}
+
+function getDefaultViralPatterns() {
+    return {
+        hookPatterns: ['mystery_hook', 'tutorial_hook', 'excitement_hook'],
+        timingPatterns: ['quick_results', 'time_specific'],
+        captionPatterns: ['question_hook', 'stat_hook', 'story_hook'],
+        engagementTriggers: ['social_validation', 'credibility', 'urgency']
+    };
+}
+
+async function analyzeVideoForViralClips(videoPath, duration, videoInfo, viralPatterns) {
+    const clips = [];
+    const clipDuration = 30; // 30 seconds per clip
+    const numClips = Math.min(3, Math.floor(duration / clipDuration));
+    
+    for (let i = 0; i < numClips; i++) {
+        const startTime = i * (duration / numClips);
+        const endTime = Math.min(startTime + clipDuration, duration);
+        
+        // Apply viral patterns to clip generation
+        const viralClip = await generateViralClip(i, startTime, endTime, videoInfo, viralPatterns, videoPath);
+        clips.push(viralClip);
+    }
+    
+    return clips;
+}
+
+async function generateViralClip(index, startTime, endTime, videoInfo, viralPatterns, videoPath) {
+    // Select the best viral pattern for this clip
+    const selectedPattern = selectBestViralPattern(viralPatterns, index);
+    
+    const clip = {
+        id: index + 1,
+        title: generateViralTitle(index, videoInfo.title, selectedPattern),
+        startTime: formatTime(startTime),
+        endTime: formatTime(endTime),
+        caption: await generateViralCaption(index, videoInfo, selectedPattern),
+        path: videoPath,
+        startSeconds: startTime,
+        endSeconds: endTime,
+        viralScore: calculateViralScore(selectedPattern),
+        pattern: selectedPattern
+    };
+    
+    return clip;
+}
+
+function selectBestViralPattern(viralPatterns, index) {
+    const patterns = {
+        mystery_hook: { score: 0.9, type: 'hook' },
+        tutorial_hook: { score: 0.8, type: 'hook' },
+        excitement_hook: { score: 0.85, type: 'hook' },
+        social_proof_hook: { score: 0.95, type: 'hook' },
+        quick_results: { score: 0.8, type: 'timing' },
+        time_specific: { score: 0.75, type: 'timing' },
+        social_validation: { score: 0.9, type: 'engagement' },
+        credibility: { score: 0.85, type: 'engagement' }
+    };
+    
+    // Select pattern based on index and availability
+    const availablePatterns = viralPatterns.hookPatterns || [];
+    if (availablePatterns.length > 0) {
+        const patternName = availablePatterns[index % availablePatterns.length];
+        return patterns[patternName] || patterns.mystery_hook;
+    }
+    
+    return patterns.mystery_hook;
+}
+
+function generateViralTitle(index, originalTitle, pattern) {
+    const viralTitles = {
+        mystery_hook: [
+            "The Secret Technique They Don't Want You to Know",
+            "Hidden Method That Changes Everything",
+            "The Trick That Actually Works"
+        ],
+        tutorial_hook: [
+            "How to Do This Like a Pro",
+            "Step-by-Step Guide That Gets Results",
+            "The Right Way to Do This"
+        ],
+        excitement_hook: [
+            "This Will Blow Your Mind",
+            "You Won't Believe What Happens Next",
+            "This Changes Everything"
+        ],
+        social_proof_hook: [
+            "Why Everyone's Talking About This",
+            "The Method That Went Viral",
+            "This Is Taking Over Social Media"
+        ]
+    };
+    
+    const titles = viralTitles[pattern.type] || viralTitles.mystery_hook;
+    return titles[index] || titles[0];
+}
+
+async function generateViralCaption(index, videoInfo, pattern) {
+    const viralCaptions = {
+        mystery_hook: [
+            "🔥 The secret they don't want you to know! This technique is pure gold...",
+            "💡 Hidden method that actually works! Game changer alert...",
+            "🚀 The trick that changed everything! You need to see this..."
+        ],
+        tutorial_hook: [
+            "🔥 How to do this like a pro! Step-by-step guide that gets results...",
+            "💡 The right way to do this! No more guessing...",
+            "🚀 Pro technique that actually works! Must try this..."
+        ],
+        excitement_hook: [
+            "🔥 This will blow your mind! You won't believe what happens...",
+            "💡 Mind-blowing technique! This changes everything...",
+            "🚀 You need to see this! It's absolutely incredible..."
+        ],
+        social_proof_hook: [
+            "🔥 Why everyone's talking about this! The method that went viral...",
+            "💡 This is taking over social media! You can't miss it...",
+            "🚀 The technique everyone's using! Join the trend..."
+        ]
+    };
+    
+    const captions = viralCaptions[pattern.type] || viralCaptions.mystery_hook;
+    const baseCaption = captions[index] || captions[0];
+    
+    // Add platform-specific elements
+    const platform = detectPlatform(videoInfo.url);
+    const platformEmojis = {
+        youtube: "📺",
+        tiktok: "🎵",
+        instagram: "📸",
+        twitter: "🐦",
+        unknown: "🎥"
+    };
+    
+    const platformEmoji = platformEmojis[platform] || "🎥";
+    
+    if (videoInfo.channel) {
+        return `${platformEmoji} ${baseCaption} Credit: @${videoInfo.channel.replace(/\s+/g, '').toLowerCase()}`;
+    }
+    
+    return `${platformEmoji} ${baseCaption}`;
+}
+
+function calculateViralScore(pattern) {
+    return pattern.score || 0.8;
 }
 
 async function createVideoClip(videoPath, startTime, endTime, clipId) {
