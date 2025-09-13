@@ -14,15 +14,15 @@
             <div class="header-actions">
                 <div class="user-info" id="userInfo" style="display: none;">
                     <span class="welcome-text">Welcome, <span id="username"></span>!</span>
-                    <button class="btn btn-small btn-logout" onclick="clipzAI.logout()">
+                    <button class="btn btn-small btn-logout" id="logoutBtn">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
                 </div>
                 <div class="auth-buttons" id="authButtons">
-                    <button class="btn btn-primary" onclick="clipzAI.showLoginModal()">
+                    <button class="btn btn-primary" id="showLoginBtn">
                         <i class="fas fa-sign-in-alt"></i> Login
                     </button>
-                    <button class="btn btn-secondary" onclick="clipzAI.showSignupModal()">
+                    <button class="btn btn-secondary" id="showSignupBtn">
                         <i class="fas fa-user-plus"></i> Sign Up
                     </button>
                 </div>
@@ -42,7 +42,7 @@
                             <h3>TikTok</h3>
                             <p class="connection-status disconnected">Not Connected</p>
                         </div>
-                        <button class="btn btn-connect" onclick="clipzAI.connectSocial('tiktok')">
+                        <button class="btn btn-connect" data-platform="tiktok">
                             <i class="fas fa-link"></i> Connect
                         </button>
                     </div>
@@ -55,7 +55,7 @@
                             <h3>Instagram</h3>
                             <p class="connection-status disconnected">Not Connected</p>
                         </div>
-                        <button class="btn btn-connect" onclick="clipzAI.connectSocial('instagram')">
+                        <button class="btn btn-connect" data-platform="instagram">
                             <i class="fas fa-link"></i> Connect
                         </button>
                     </div>
@@ -68,7 +68,7 @@
                             <h3>YouTube Shorts</h3>
                             <p class="connection-status disconnected">Not Connected</p>
                         </div>
-                        <button class="btn btn-connect" onclick="clipzAI.connectSocial('youtube')">
+                        <button class="btn btn-connect" data-platform="youtube">
                             <i class="fas fa-link"></i> Connect
                         </button>
                     </div>
@@ -235,10 +235,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Login to Clipz AI</h3>
-                <span class="close" onclick="clipzAI.closeLoginModal()">&times;</span>
+                <span class="close" id="closeLoginModal">&times;</span>
             </div>
             <div class="modal-body">
-                <form id="loginForm" onsubmit="clipzAI.login(event)">
+                <form id="loginForm">
                     <div class="form-group">
                         <label for="loginEmail">Email</label>
                         <input type="email" id="loginEmail" required>
@@ -252,7 +252,7 @@
                     </button>
                 </form>
                 <p class="auth-switch">
-                    Don't have an account? <a href="#" onclick="clipzAI.switchToSignup()">Sign up here</a>
+                    Don't have an account? <a href="#" id="switchToSignup">Sign up here</a>
                 </p>
             </div>
         </div>
@@ -263,10 +263,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Create Account</h3>
-                <span class="close" onclick="clipzAI.closeSignupModal()">&times;</span>
+                <span class="close" id="closeSignupModal">&times;</span>
             </div>
             <div class="modal-body">
-                <form id="signupForm" onsubmit="clipzAI.signup(event)">
+                <form id="signupForm">
                     <div class="form-group">
                         <label for="signupUsername">Username</label>
                         <input type="text" id="signupUsername" required>
@@ -284,7 +284,7 @@
                     </button>
                 </form>
                 <p class="auth-switch">
-                    Already have an account? <a href="#" onclick="clipzAI.switchToLogin()">Login here</a>
+                    Already have an account? <a href="#" id="switchToLogin">Login here</a>
                 </p>
             </div>
         </div>

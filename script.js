@@ -22,6 +22,18 @@ class ClipzAI {
             btn.addEventListener('click', (e) => this.uploadToSocial(e.target.dataset.platform));
         });
         
+        // Add click listeners to connection buttons
+        document.querySelectorAll('.btn-connect').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const platform = e.target.dataset.platform;
+                if (this.connectedPlatforms[platform]) {
+                    this.disconnectSocial(platform);
+                } else {
+                    this.connectSocial(platform);
+                }
+            });
+        });
+        
         // Add click listeners to footer status indicators
         document.querySelectorAll('.platform-status').forEach(status => {
             status.addEventListener('click', () => {
@@ -29,6 +41,27 @@ class ClipzAI {
                     behavior: 'smooth' 
                 });
             });
+        });
+        
+        // Add click listeners to authentication buttons
+        document.getElementById('showLoginBtn').addEventListener('click', () => this.showLoginModal());
+        document.getElementById('showSignupBtn').addEventListener('click', () => this.showSignupModal());
+        document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
+        document.getElementById('closeLoginModal').addEventListener('click', () => this.closeLoginModal());
+        document.getElementById('closeSignupModal').addEventListener('click', () => this.closeSignupModal());
+        
+        // Add form submit listeners
+        document.getElementById('loginForm').addEventListener('submit', (e) => this.login(e));
+        document.getElementById('signupForm').addEventListener('submit', (e) => this.signup(e));
+        
+        // Add auth switch listeners
+        document.getElementById('switchToSignup').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.switchToSignup();
+        });
+        document.getElementById('switchToLogin').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.switchToLogin();
         });
     }
 
@@ -607,7 +640,6 @@ class ClipzAI {
             button.classList.remove('connecting');
             button.classList.add('connected');
             button.innerHTML = '<i class="fas fa-unlink"></i> Disconnect';
-            button.onclick = () => this.disconnectSocial(platform);
             status.textContent = 'Connected';
             status.className = 'connection-status connected';
             
@@ -678,7 +710,6 @@ class ClipzAI {
                 card.classList.add('connected');
                 button.classList.add('connected');
                 button.innerHTML = '<i class="fas fa-unlink"></i> Disconnect';
-                button.onclick = () => this.disconnectSocial(platform);
                 status.textContent = 'Connected';
                 status.className = 'connection-status connected';
             }
@@ -717,7 +748,6 @@ class ClipzAI {
         card.classList.remove('connected');
         button.classList.remove('connected');
         button.innerHTML = '<i class="fas fa-link"></i> Connect';
-        button.onclick = () => this.connectSocial(platform);
         status.textContent = 'Not Connected';
         status.className = 'connection-status disconnected';
         
