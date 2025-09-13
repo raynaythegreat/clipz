@@ -253,6 +253,28 @@ app.get('/api/my-clips', authenticateToken, (req, res) => {
     }
 });
 
+// API endpoint to save clip to user's history
+app.post('/api/save-clip', authenticateToken, (req, res) => {
+    try {
+        const clip = req.body;
+        const userId = req.user.userId;
+        
+        // Get user's existing clips
+        const clips = userClips.get(userId) || [];
+        
+        // Add the new clip
+        clips.push(clip);
+        
+        // Save back to storage
+        userClips.set(userId, clips);
+        
+        res.json({ message: 'Clip saved successfully', clip });
+    } catch (error) {
+        console.error('Save clip error:', error);
+        res.status(500).json({ error: 'Failed to save clip' });
+    }
+});
+
 // API endpoint to delete a clip
 app.delete('/api/clips/:clipId', authenticateToken, (req, res) => {
     try {

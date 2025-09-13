@@ -14,6 +14,9 @@
             <div class="header-actions">
                 <div class="user-info" id="userInfo" style="display: none;">
                     <span class="welcome-text">Welcome, <span id="username"></span>!</span>
+                    <button class="btn btn-small btn-secondary" id="dashboardBtn">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </button>
                     <button class="btn btn-small btn-logout" id="logoutBtn">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
@@ -114,15 +117,102 @@
                 </div>
             </div>
             
-            <div class="user-history-section hidden" id="userHistorySection">
-                <div class="section-header">
-                    <h2><i class="fas fa-history"></i> Your Clip History</h2>
-                    <p>All your previously generated clips are saved here</p>
+    <!-- Dashboard Section -->
+    <div class="dashboard-section hidden" id="dashboardSection">
+        <div class="section-header">
+            <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+            <p>Manage your account, social connections, and clip preferences</p>
+        </div>
+        
+        <div class="dashboard-grid">
+            <!-- Social Media Connections -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-share-alt"></i> Social Media Connections</h3>
                 </div>
-                <div id="historyContainer" class="clips-container">
-                    <!-- User's clip history will be displayed here -->
+                <div class="card-content">
+                    <div class="connection-status" id="dashboardConnections">
+                        <!-- Connection status will be displayed here -->
+                    </div>
+                    <div class="connection-actions">
+                        <button class="btn btn-primary" onclick="clipzAI.showSocialConnectModal()">
+                            <i class="fas fa-plus"></i> Connect Platform
+                        </button>
+                    </div>
                 </div>
             </div>
+            
+            <!-- Clip History Settings -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-cog"></i> Clip History Settings</h3>
+                </div>
+                <div class="card-content">
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="autoSaveClips" checked>
+                            <span class="checkmark"></span>
+                            Automatically save all generated clips
+                        </label>
+                        <p class="setting-description">When enabled, all clips will be saved to your history automatically</p>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="askBeforeSave">
+                            <span class="checkmark"></span>
+                            Ask before saving each clip
+                        </label>
+                        <p class="setting-description">You'll be prompted to choose which clips to save</p>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="autoCleanup">
+                            <span class="checkmark"></span>
+                            Auto-cleanup unsaved clips
+                        </label>
+                        <p class="setting-description">Automatically remove clips you choose not to save</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Account Information -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-user"></i> Account Information</h3>
+                </div>
+                <div class="card-content">
+                    <div class="account-info">
+                        <div class="info-item">
+                            <span class="info-label">Username:</span>
+                            <span class="info-value" id="dashboardUsername">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value" id="dashboardEmail">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Member Since:</span>
+                            <span class="info-value" id="dashboardJoinDate">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Total Clips:</span>
+                            <span class="info-value" id="dashboardClipCount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="user-history-section hidden" id="userHistorySection">
+        <div class="section-header">
+            <h2><i class="fas fa-history"></i> Your Clip History</h2>
+            <p>All your previously generated clips are saved here</p>
+        </div>
+        <div id="historyContainer" class="clips-container">
+            <!-- User's clip history will be displayed here -->
+        </div>
+    </div>
 
             <!-- Clip Preview Modal -->
             <div id="previewModal" class="modal hidden">

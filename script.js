@@ -47,6 +47,7 @@ class ClipzAI {
         document.getElementById('showLoginBtn').addEventListener('click', () => this.showLoginModal());
         document.getElementById('showSignupBtn').addEventListener('click', () => this.showSignupModal());
         document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
+        document.getElementById('dashboardBtn').addEventListener('click', () => this.showDashboard());
         document.getElementById('closeLoginModal').addEventListener('click', () => this.closeLoginModal());
         document.getElementById('closeSignupModal').addEventListener('click', () => this.closeSignupModal());
         
@@ -623,11 +624,13 @@ class ClipzAI {
             document.getElementById('username').textContent = this.currentUser.username;
             document.getElementById('authRequiredNotice').classList.add('hidden');
             document.getElementById('userHistorySection').classList.remove('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
         } else {
             document.getElementById('userInfo').style.display = 'none';
             document.getElementById('authButtons').style.display = 'flex';
             document.getElementById('authRequiredNotice').classList.remove('hidden');
             document.getElementById('userHistorySection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.add('hidden');
         }
     }
 
@@ -1128,6 +1131,184 @@ class ClipzAI {
         } catch (error) {
             console.error('Delete clip error:', error);
             this.showCopyNotification('Failed to delete clip', 'error');
+        }
+    }
+
+    // Dashboard Functions
+    showDashboard() {
+        if (!this.currentUser) {
+            this.showCopyNotification('Please login to access dashboard', 'error');
+            return;
+        }
+        
+        this.updateDashboard();
+        document.getElementById('dashboardSection').classList.remove('hidden');
+        document.getElementById('dashboardSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    updateDashboard() {
+        if (!this.currentUser) return;
+        
+        // Update account information
+        document.getElementById('dashboardUsername').textContent = this.currentUser.username;
+        document.getElementById('dashboardEmail').textContent = this.currentUser.email;
+        document.getElementById('dashboardJoinDate').textContent = new Date(this.currentUser.createdAt).toLocaleDateString();
+        document.getElementById('dashboardClipCount').textContent = this.generatedClips.length;
+        
+        // Update social connections
+        this.updateDashboardConnections();
+        
+        // Load user settings
+        this.loadUserSettings();
+    }
+
+    updateDashboardConnections() {
+        const connectionsContainer = document.getElementById('dashboardConnections');
+        const platforms = ['tiktok', 'instagram', 'youtube'];
+        
+        let connectionsHTML = '';
+        platforms.forEach(platform => {
+            const isConnected = this.connectedPlatforms.includes(platform);
+            const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
+            const icon = platform === 'tiktok' ? 'fab fa-tiktok' : 
+                        platform === 'instagram' ? 'fab fa-instagram' : 'fab fa-youtube';
+            
+            connectionsHTML += `
+                <div class="connection-item">
+                    <div class="connection-info">
+                        <i class="${icon}"></i>
+                        <span>${platformName}</span>
+                    </div>
+                    <div class="connection-status-badge ${isConnected ? 'connected' : 'disconnected'}">
+                        ${isConnected ? 'Connected' : 'Not Connected'}
+                    </div>
+                </div>
+            `;
+        });
+        
+        connectionsContainer.innerHTML = connectionsHTML;
+    }
+
+    loadUserSettings() {
+        // Load settings from localStorage
+        const autoSave = localStorage.getItem('clipz_auto_save') !== 'false';
+        const askBeforeSave = localStorage.getItem('clipz_ask_before_save') === 'true';
+        const autoCleanup = localStorage.getItem('clipz_auto_cleanup') === 'true';
+        
+        document.getElementById('autoSaveClips').checked = autoSave;
+        document.getElementById('askBeforeSave').checked = askBeforeSave;
+        document.getElementById('autoCleanup').checked = autoCleanup;
+        
+        // Add event listeners for settings
+        document.getElementById('autoSaveClips').addEventListener('change', (e) => {
+            localStorage.setItem('clipz_auto_save', e.target.checked);
+            this.showCopyNotification('Settings saved!');
+        });
+        
+        document.getElementById('askBeforeSave').addEventListener('change', (e) => {
+            localStorage.setItem('clipz_ask_before_save', e.target.checked);
+            this.showCopyNotification('Settings saved!');
+        });
+        
+        document.getElementById('autoCleanup').addEventListener('change', (e) => {
+            localStorage.setItem('clipz_auto_cleanup', e.target.checked);
+            this.showCopyNotification('Settings saved!');
+        });
+    }
+
+    showSocialConnectModal() {
+        // Show a modal to select which platform to connect
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Connect Social Media Platform</h3>
+                    <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="platform-selection">
+                        <button class="btn btn-primary platform-btn" data-platform="tiktok">
+                            <i class="fab fa-tiktok"></i> Connect TikTok
+                        </button>
+                        <button class="btn btn-primary platform-btn" data-platform="instagram">
+                            <i class="fab fa-instagram"></i> Connect Instagram
+                        </button>
+                        <button class="btn btn-primary platform-btn" data-platform="youtube">
+                            <i class="fab fa-youtube"></i> Connect YouTube
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Add event listeners
+        modal.querySelectorAll('.platform-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const platform = e.target.closest('.platform-btn').dataset.platform;
+                this.connectSocial(platform);
+                modal.remove();
+            });
+        });
+        
+        // Close on outside click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+
+    // Enhanced clip saving with user choice
+    async saveClipWithChoice(clip) {
+        const autoSave = localStorage.getItem('clipz_auto_save') !== 'false';
+        const askBeforeSave = localStorage.getItem('clipz_ask_before_save') === 'true';
+        
+        if (autoSave && !askBeforeSave) {
+            // Auto-save without asking
+            await this.saveClipToHistory(clip);
+            return true;
+        } else if (askBeforeSave) {
+            // Ask user before saving
+            const shouldSave = confirm(`Save this clip to your history?\n\nTitle: ${clip.title}\nDuration: ${clip.duration}\nViral Score: ${Math.round(clip.viralScore * 100)}%`);
+            if (shouldSave) {
+                await this.saveClipToHistory(clip);
+                return true;
+            } else {
+                // Auto-cleanup if enabled
+                const autoCleanup = localStorage.getItem('clipz_auto_cleanup') === 'true';
+                if (autoCleanup) {
+                    await this.deleteClip(clip.id);
+                }
+                return false;
+            }
+        }
+        
+        return false;
+    }
+
+    async saveClipToHistory(clip) {
+        try {
+            const response = await fetch('/api/save-clip', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...this.getAuthHeaders()
+                },
+                body: JSON.stringify(clip)
+            });
+            
+            if (response.ok) {
+                this.showCopyNotification('Clip saved to history!');
+                this.loadUserClips(); // Refresh the history
+            } else {
+                this.showCopyNotification('Failed to save clip', 'error');
+            }
+        } catch (error) {
+            console.error('Save clip error:', error);
+            this.showCopyNotification('Failed to save clip', 'error');
         }
     }
 
