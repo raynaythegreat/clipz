@@ -4,7 +4,13 @@ class ClipzAI {
         this.generatedClips = [];
         this.selectedClip = null;
         this.previewClip = null;
+        this.connectedPlatforms = {
+            tiktok: false,
+            instagram: false,
+            youtube: false
+        };
         this.initializeEventListeners();
+        this.loadConnectionStatus();
     }
 
     initializeEventListeners() {
@@ -415,6 +421,118 @@ class ClipzAI {
         }, 3000);
     }
 
+    async connectSocial(platform) {
+        const card = document.querySelector(`[data-platform="${platform}"]`);
+        const button = card.querySelector('.btn-connect');
+        const status = card.querySelector('.connection-status');
+        
+        // Set connecting state
+        card.classList.add('connecting');
+        button.classList.add('connecting');
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+        status.textContent = 'Connecting...';
+        status.className = 'connection-status connecting';
+        
+        try {
+            // Simulate connection process
+            await this.simulateSocialConnection(platform);
+            
+            // Set connected state
+            this.connectedPlatforms[platform] = true;
+            card.classList.remove('connecting');
+            card.classList.add('connected');
+            button.classList.remove('connecting');
+            button.classList.add('connected');
+            button.innerHTML = '<i class="fas fa-unlink"></i> Disconnect';
+            button.onclick = () => this.disconnectSocial(platform);
+            status.textContent = 'Connected';
+            status.className = 'connection-status connected';
+            
+            // Save connection status
+            this.saveConnectionStatus();
+            
+            this.showCopyNotification(`${platform.charAt(0).toUpperCase() + platform.slice(1)} connected successfully!`);
+            
+        } catch (error) {
+            console.error(`Error connecting to ${platform}:`, error);
+            
+            // Reset to disconnected state
+            card.classList.remove('connecting');
+            button.classList.remove('connecting');
+            button.innerHTML = '<i class="fas fa-link"></i> Connect';
+            status.textContent = 'Connection Failed';
+            status.className = 'connection-status disconnected';
+            
+            this.showCopyNotification(`Failed to connect to ${platform}. Please try again.`);
+        }
+    }
+
+    async simulateSocialConnection(platform) {
+        // Simulate connection process with different platforms
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                // Simulate 90% success rate
+                if (Math.random() > 0.1) {
+                    resolve();
+                } else {
+                    reject(new Error('Connection failed'));
+                }
+            }, 2000);
+        });
+    }
+
+    loadConnectionStatus() {
+        // Load saved connection status from localStorage
+        const saved = localStorage.getItem('clipz_social_connections');
+        if (saved) {
+            try {
+                this.connectedPlatforms = JSON.parse(saved);
+                this.updateConnectionUI();
+            } catch (error) {
+                console.error('Error loading connection status:', error);
+            }
+        }
+    }
+
+    saveConnectionStatus() {
+        // Save connection status to localStorage
+        localStorage.setItem('clipz_social_connections', JSON.stringify(this.connectedPlatforms));
+    }
+
+    updateConnectionUI() {
+        Object.keys(this.connectedPlatforms).forEach(platform => {
+            if (this.connectedPlatforms[platform]) {
+                const card = document.querySelector(`[data-platform="${platform}"]`);
+                const button = card.querySelector('.btn-connect');
+                const status = card.querySelector('.connection-status');
+                
+                card.classList.add('connected');
+                button.classList.add('connected');
+                button.innerHTML = '<i class="fas fa-unlink"></i> Disconnect';
+                button.onclick = () => this.disconnectSocial(platform);
+                status.textContent = 'Connected';
+                status.className = 'connection-status connected';
+            }
+        });
+    }
+
+    disconnectSocial(platform) {
+        const card = document.querySelector(`[data-platform="${platform}"]`);
+        const button = card.querySelector('.btn-connect');
+        const status = card.querySelector('.connection-status');
+        
+        this.connectedPlatforms[platform] = false;
+        card.classList.remove('connected');
+        button.classList.remove('connected');
+        button.innerHTML = '<i class="fas fa-link"></i> Connect';
+        button.onclick = () => this.connectSocial(platform);
+        status.textContent = 'Not Connected';
+        status.className = 'connection-status disconnected';
+        
+        this.saveConnectionStatus();
+        this.showCopyNotification(`${platform.charAt(0).toUpperCase() + platform.slice(1)} disconnected.`);
+    }
+
     async downloadClip(clipId) {
         const clip = this.generatedClips.find(c => c.id === clipId);
         if (!clip) return;
@@ -470,6 +588,12 @@ class ClipzAI {
     async uploadToSocial(platform) {
         if (!this.selectedClip) {
             alert('Please select a clip first by clicking the "Upload" button on a clip');
+            return;
+        }
+
+        // Check if platform is connected
+        if (!this.connectedPlatforms[platform]) {
+            alert(`Please connect your ${platform} account first using the connection section above.`);
             return;
         }
 

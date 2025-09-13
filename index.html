@@ -15,7 +15,53 @@
         </header>
 
         <main>
+            <div class="social-connection-section">
+                <h2><i class="fas fa-link"></i> Connect Social Media Accounts</h2>
+                <p>Connect your accounts to enable direct uploads after generating clips</p>
+                <div class="connection-grid">
+                    <div class="connection-card" data-platform="tiktok">
+                        <div class="platform-icon">
+                            <i class="fab fa-tiktok"></i>
+                        </div>
+                        <div class="platform-info">
+                            <h3>TikTok</h3>
+                            <p class="connection-status disconnected">Not Connected</p>
+                        </div>
+                        <button class="btn btn-connect" onclick="clipzAI.connectSocial('tiktok')">
+                            <i class="fas fa-link"></i> Connect
+                        </button>
+                    </div>
+                    
+                    <div class="connection-card" data-platform="instagram">
+                        <div class="platform-icon">
+                            <i class="fab fa-instagram"></i>
+                        </div>
+                        <div class="platform-info">
+                            <h3>Instagram</h3>
+                            <p class="connection-status disconnected">Not Connected</p>
+                        </div>
+                        <button class="btn btn-connect" onclick="clipzAI.connectSocial('instagram')">
+                            <i class="fas fa-link"></i> Connect
+                        </button>
+                    </div>
+                    
+                    <div class="connection-card" data-platform="youtube">
+                        <div class="platform-icon">
+                            <i class="fab fa-youtube"></i>
+                        </div>
+                        <div class="platform-info">
+                            <h3>YouTube Shorts</h3>
+                            <p class="connection-status disconnected">Not Connected</p>
+                        </div>
+                        <button class="btn btn-connect" onclick="clipzAI.connectSocial('youtube')">
+                            <i class="fas fa-link"></i> Connect
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="upload-section">
+                <h2><i class="fas fa-video"></i> Generate Viral Clips</h2>
                 <div class="input-group">
                     <label for="videoUrl">Video URL (YouTube, TikTok, Instagram, etc.)</label>
                     <input type="url" id="videoUrl" placeholder="https://www.youtube.com/watch?v=..." required>
