@@ -180,7 +180,7 @@ async function analyzeVideoForClips(videoPath, duration, videoInfo) {
             title: generateClipTitle(i, videoInfo.title),
             startTime: formatTime(startTime),
             endTime: formatTime(endTime),
-            caption: generateAICaption(i, videoInfo.title),
+            caption: await generateAICaption(i, videoInfo.title, videoInfo, { startTime, endTime }),
             path: videoPath,
             startSeconds: startTime,
             endSeconds: endTime
@@ -203,15 +203,169 @@ function generateClipTitle(index, originalTitle) {
     return titles[index] || `Clip ${index + 1}: ${originalTitle.substring(0, 30)}...`;
 }
 
-function generateAICaption(index, originalTitle) {
-    const captions = [
-        "🔥 The secret to viral content isn't what you think! This technique changed everything for me...",
-        "💡 Here's the content strategy that got me 1M+ views. Most creators are doing this wrong...",
-        "🚀 Want more engagement? Try this simple trick that increased my comments by 300%...",
-        "⚡ This growth hack is so powerful, it should be illegal. Here's how to use it...",
-        "🎯 The audience building method that transformed my channel. You need to see this..."
+async function generateAICaption(index, originalTitle, videoInfo, clipData) {
+    try {
+        // Analyze the video content and generate contextual captions
+        const contextualCaption = await analyzeVideoForCaption(videoInfo, clipData, index);
+        return contextualCaption;
+    } catch (error) {
+        console.error('Error generating AI caption:', error);
+        // Fallback to smart captions based on video info
+        return generateSmartCaption(index, originalTitle, videoInfo);
+    }
+}
+
+async function analyzeVideoForCaption(videoInfo, clipData, index) {
+    // Extract key information from video
+    const videoTitle = videoInfo.title || '';
+    const channel = videoInfo.channel || '';
+    const duration = videoInfo.duration || '';
+    
+    // Analyze video title for content type
+    const contentType = analyzeContentType(videoTitle);
+    const platform = detectPlatform(videoInfo.url);
+    
+    // Generate contextual captions based on content analysis
+    const captions = generateContextualCaptions(contentType, platform, channel, index);
+    
+    return captions;
+}
+
+function analyzeContentType(title) {
+    const titleLower = title.toLowerCase();
+    
+    if (titleLower.includes('tutorial') || titleLower.includes('how to') || titleLower.includes('guide')) {
+        return 'tutorial';
+    } else if (titleLower.includes('review') || titleLower.includes('unboxing')) {
+        return 'review';
+    } else if (titleLower.includes('reaction') || titleLower.includes('reacting')) {
+        return 'reaction';
+    } else if (titleLower.includes('vlog') || titleLower.includes('day in the life')) {
+        return 'vlog';
+    } else if (titleLower.includes('gaming') || titleLower.includes('gameplay')) {
+        return 'gaming';
+    } else if (titleLower.includes('cooking') || titleLower.includes('recipe')) {
+        return 'cooking';
+    } else if (titleLower.includes('fitness') || titleLower.includes('workout')) {
+        return 'fitness';
+    } else if (titleLower.includes('music') || titleLower.includes('song')) {
+        return 'music';
+    } else {
+        return 'general';
+    }
+}
+
+function detectPlatform(url) {
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        return 'youtube';
+    } else if (url.includes('tiktok.com')) {
+        return 'tiktok';
+    } else if (url.includes('instagram.com')) {
+        return 'instagram';
+    } else if (url.includes('twitter.com') || url.includes('x.com')) {
+        return 'twitter';
+    } else {
+        return 'unknown';
+    }
+}
+
+function generateContextualCaptions(contentType, platform, channel, index) {
+    const captionTemplates = {
+        tutorial: [
+            "🔥 This tutorial changed everything! The technique they show here is pure gold...",
+            "💡 Pro tip alert! This is exactly how you should be doing it. Game changer!",
+            "🚀 Step-by-step guide that actually works! No fluff, just results...",
+            "⚡ This method is so effective, I wish I knew it sooner. Must try!",
+            "🎯 Finally, a tutorial that delivers! This is the real deal..."
+        ],
+        review: [
+            "🔥 Honest review that you NEED to see! They don't hold back...",
+            "💡 Real talk about this product. Spoiler: it's not what you think...",
+            "🚀 This review saved me money! Finally someone tells the truth...",
+            "⚡ Unbiased opinion that actually helps. No BS, just facts...",
+            "🎯 This review changed my mind completely. Must watch!"
+        ],
+        reaction: [
+            "🔥 Their reaction is EVERYTHING! You can't look away...",
+            "💡 This reaction video is pure entertainment. So relatable!",
+            "🚀 Their face says it all! This is too good to miss...",
+            "⚡ Best reaction ever! You'll be laughing the whole time...",
+            "🎯 This reaction is going viral for a reason. Watch now!"
+        ],
+        vlog: [
+            "🔥 Behind the scenes content that's actually interesting!",
+            "💡 Day in the life content done right. So authentic!",
+            "🚀 This vlog is pure vibes. You'll want to be there...",
+            "⚡ Real life content that hits different. Must see!",
+            "🎯 This is how vlogging should be done. So engaging!"
+        ],
+        gaming: [
+            "🔥 This gameplay is INSANE! The skills are unreal...",
+            "💡 Gaming content that's actually entertaining. No boring parts!",
+            "🚀 This game moment is legendary. You need to see this...",
+            "⚡ Best gaming clip I've seen in a while. Pure talent!",
+            "🎯 This is why I love gaming content. So intense!"
+        ],
+        cooking: [
+            "🔥 This recipe is a game changer! So simple yet delicious...",
+            "💡 Cooking hack that actually works! You'll use this forever...",
+            "🚀 This dish looks incredible! I'm making this tonight...",
+            "⚡ Kitchen tip that saves time and tastes amazing!",
+            "🎯 This cooking technique is pure genius. Must try!"
+        ],
+        fitness: [
+            "🔥 This workout is FIRE! You'll feel the burn...",
+            "💡 Fitness tip that actually works! No gimmicks here...",
+            "🚀 This exercise is a game changer for your routine...",
+            "⚡ Workout motivation that hits different. Let's go!",
+            "🎯 This fitness content is pure motivation. Get moving!"
+        ],
+        music: [
+            "🔥 This song is a BOP! Can't stop listening...",
+            "💡 Musical talent that's off the charts! So good...",
+            "🚀 This performance is incredible! Pure artistry...",
+            "⚡ Music that hits your soul. You need to hear this...",
+            "🎯 This is why I love music. So powerful!"
+        ],
+        general: [
+            "🔥 This content is pure gold! You can't miss this...",
+            "💡 Something you need to see! It's worth your time...",
+            "🚀 This is going viral for a reason. Check it out...",
+            "⚡ Content that actually matters. Must watch!",
+            "🎯 This is the kind of content I live for. So good!"
+        ]
+    };
+    
+    const platformEmojis = {
+        youtube: "📺",
+        tiktok: "🎵",
+        instagram: "📸",
+        twitter: "🐦",
+        unknown: "🎥"
+    };
+    
+    const templates = captionTemplates[contentType] || captionTemplates.general;
+    const baseCaption = templates[index] || templates[0];
+    const platformEmoji = platformEmojis[platform] || "🎥";
+    
+    // Add platform-specific elements
+    if (channel) {
+        return `${platformEmoji} ${baseCaption} Credit: @${channel.replace(/\s+/g, '').toLowerCase()}`;
+    }
+    
+    return `${platformEmoji} ${baseCaption}`;
+}
+
+function generateSmartCaption(index, originalTitle, videoInfo) {
+    const smartCaptions = [
+        `🔥 This ${originalTitle.substring(0, 30)}... content is pure gold! You need to see this...`,
+        `💡 Pro tip from this ${originalTitle.substring(0, 25)}... video. Game changer!`,
+        `🚀 This ${originalTitle.substring(0, 30)}... moment is legendary. Must watch!`,
+        `⚡ Best part of ${originalTitle.substring(0, 25)}... You can't miss this!`,
+        `🎯 This ${originalTitle.substring(0, 30)}... content hits different. So good!`
     ];
-    return captions[index] || `Amazing content from ${originalTitle}! Don't miss this...`;
+    
+    return smartCaptions[index] || smartCaptions[0];
 }
 
 function generateMockClips(videoPath) {

@@ -151,7 +151,12 @@ class ClipzAI {
                     <i class="fas fa-video" style="font-size: 3rem; color: #667eea;"></i>
                 </div>
                 <div class="clip-title">${clip.title}</div>
-                <div class="clip-caption">${clip.caption}</div>
+                <div class="clip-caption-container">
+                    <div class="clip-caption">${clip.caption}</div>
+                    <button class="btn btn-tiny btn-copy" onclick="clipzAI.copyClipCaption(${clip.id})" title="Copy Caption">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
                 <div class="clip-timing">
                     <small>${clip.startTime} - ${clip.endTime}</small>
                 </div>
@@ -293,9 +298,9 @@ class ClipzAI {
         video.src = '';
     }
 
-    downloadPreviewClip() {
+    async downloadPreviewClip() {
         if (this.previewClip) {
-            this.downloadClip(this.previewClip.id);
+            await this.downloadClip(this.previewClip.id);
             this.closePreview();
         }
     }
@@ -307,6 +312,77 @@ class ClipzAI {
             // Show social media upload options
             document.getElementById('socialSection').scrollIntoView({ behavior: 'smooth' });
         }
+    }
+
+    async copyCaption() {
+        if (!this.previewClip) return;
+        
+        const caption = this.previewClip.caption;
+        await this.copyToClipboard(caption, 'Caption copied to clipboard!');
+    }
+
+    async copyClipCaption(clipId) {
+        const clip = this.generatedClips.find(c => c.id === clipId);
+        if (!clip) return;
+        
+        const caption = clip.caption;
+        await this.copyToClipboard(caption, 'Caption copied to clipboard!');
+        
+        // Visual feedback on the button
+        const button = event.target.closest('.btn-copy');
+        if (button) {
+            button.classList.add('copied');
+            setTimeout(() => {
+                button.classList.remove('copied');
+            }, 1000);
+        }
+    }
+
+    async copyToClipboard(text, message) {
+        try {
+            // Use the modern clipboard API if available
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                textArea.remove();
+            }
+            
+            this.showCopyNotification(message);
+        } catch (error) {
+            console.error('Failed to copy text: ', error);
+            this.showCopyNotification('Failed to copy. Please try again.');
+        }
+    }
+
+    showCopyNotification(message) {
+        // Remove existing notification
+        const existingNotification = document.querySelector('.copy-notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+        
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = 'copy-notification';
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
     }
 
     async downloadClip(clipId) {
@@ -342,6 +418,10 @@ class ClipzAI {
                     document.body.removeChild(link);
                     
                     this.showProgress('Download complete!', 100);
+                    
+                    // Also copy the caption for easy pasting
+                    await this.copyToClipboard(clip.caption, 'Clip downloaded and caption copied!');
+                    
                     setTimeout(() => this.hideProgress(), 2000);
                 } else {
                     throw new Error('No clip path returned');

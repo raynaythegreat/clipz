@@ -6,7 +6,9 @@ An AI-powered web application that automatically generates viral clips from vide
 
 - 🎥 **Video Analysis**: Upload any video URL (YouTube, TikTok, Instagram, etc.)
 - 🤖 **AI Clip Generation**: Automatically identify the most engaging moments
-- 📝 **AI Captions**: Generate viral-worthy captions for each clip
+- 📝 **Smart AI Captions**: Context-aware captions based on video content and platform
+- 📋 **Copy Captions**: One-click copy for fast pasting to social media
+- 🎬 **Clip Preview**: Preview generated clips before download/upload
 - 📱 **Social Media Upload**: Direct upload to TikTok, Instagram, and YouTube Shorts
 - 🎨 **Modern UI**: Clean, responsive design optimized for all devices
 
@@ -41,9 +43,10 @@ npm start
 
 1. **Enter Video URL**: Paste any video URL from YouTube, TikTok, Instagram, etc.
 2. **Analyze**: Click "Analyze Video" to extract video information
-3. **Generate Clips**: The AI will automatically identify viral moments
-4. **Review Clips**: Browse through generated clips with AI captions
-5. **Upload**: Select a clip and upload directly to your social media accounts
+3. **Generate Clips**: The AI will automatically identify viral moments with smart captions
+4. **Preview Clips**: Click the play button to preview each clip
+5. **Copy Captions**: Click the copy button to copy captions for easy pasting
+6. **Download/Upload**: Download clips (caption auto-copied) or upload to social media
 
 ## Supported Platforms
 
