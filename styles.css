@@ -221,11 +221,11 @@ header p {
 }
 
 .modal-header h3 {
-    color: #ffffff !important;
+    color: #000000 !important;
     margin: 0;
     font-size: 2.2rem;
     font-weight: 800;
-    text-shadow: 0 4px 12px rgba(0, 0, 0, 1), 0 0 20px rgba(255, 255, 255, 0.8);
+    text-shadow: 0 2px 4px rgba(255, 255, 255, 0.8), 0 0 10px rgba(255, 255, 255, 0.6);
     opacity: 1 !important;
     filter: none;
     letter-spacing: 1px;
@@ -286,10 +286,10 @@ header p {
 .modal-body .form-group label {
     display: block;
     margin-bottom: 15px;
-    color: #ffffff !important;
+    color: #000000 !important;
     font-weight: 800;
     font-size: 1.3rem;
-    text-shadow: 0 3px 6px rgba(0, 0, 0, 1), 0 0 15px rgba(255, 255, 255, 0.8);
+    text-shadow: 0 2px 4px rgba(255, 255, 255, 0.8), 0 0 10px rgba(255, 255, 255, 0.6);
     letter-spacing: 0.8px;
     opacity: 1 !important;
     filter: none;
@@ -298,44 +298,44 @@ header p {
 .modal-body .form-group input {
     width: 100%;
     padding: 18px 25px;
-    border: 3px solid rgba(255, 255, 255, 0.8);
+    border: 3px solid rgba(0, 0, 0, 0.3);
     border-radius: 15px;
-    background: rgba(255, 255, 255, 0.3);
-    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.9);
+    color: #000000 !important;
     font-size: 1.2rem;
     font-weight: 600;
     backdrop-filter: blur(20px);
     transition: all 0.3s ease;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    text-shadow: none;
     opacity: 1 !important;
 }
 
 .modal-body .form-group input:focus {
     outline: none;
-    border-color: #ffffff;
-    box-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 6px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.4);
+    border-color: #000000;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), 0 6px 25px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 1);
     transform: translateY(-3px);
-    color: #ffffff !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 1);
+    color: #000000 !important;
+    text-shadow: none;
     opacity: 1 !important;
 }
 
 .modal-body .form-group input::placeholder {
-    color: #ffffff !important;
+    color: #666666 !important;
     font-weight: 600;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 1);
+    text-shadow: none;
     font-size: 1.1rem;
     opacity: 1 !important;
 }
 
 .modal-body .form-group input:hover {
-    border-color: #ffffff;
-    background: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border-color: #000000;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
     transform: translateY(-1px);
-    color: #ffffff !important;
+    color: #000000 !important;
     opacity: 1 !important;
 }
 
@@ -372,62 +372,62 @@ header p {
     text-align: center;
     margin-top: 25px;
     padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.3);
-    color: #ffffff !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.2);
+    color: #000000 !important;
     font-size: 1.1rem;
     font-weight: 600;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 1);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
     letter-spacing: 0.3px;
     opacity: 1 !important;
 }
 
 .modal-body .auth-switch a {
-    color: #ffffff !important;
+    color: #000000 !important;
     text-decoration: none;
     font-weight: 700;
     transition: all 0.3s ease;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 1);
-    background: rgba(255, 255, 255, 0.2);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.8);
     padding: 5px 10px;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.3);
     opacity: 1 !important;
 }
 
 .modal-body .auth-switch a:hover {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(0, 0, 0, 0.5);
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    color: #ffffff !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    color: #000000 !important;
     opacity: 1 !important;
 }
 
 .form-help {
     margin: 20px 0;
     padding: 20px;
-    background: rgba(255, 255, 255, 0.15);
-    border: 2px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(0, 0, 0, 0.2);
     border-radius: 15px;
     text-align: center;
     backdrop-filter: blur(15px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .form-help p {
-    color: #ffffff !important;
+    color: #000000 !important;
     margin: 0;
     font-size: 1.1rem;
     font-weight: 700;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 1);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
     letter-spacing: 0.5px;
     opacity: 1 !important;
 }
 
 .form-help i {
-    color: #ffffff !important;
+    color: #000000 !important;
     margin-right: 10px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 1);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
     font-size: 1.2rem;
     opacity: 1 !important;
 }
