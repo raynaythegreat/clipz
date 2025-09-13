@@ -482,6 +482,9 @@ class ClipzAI {
                     this.currentUser = data.user;
                     this.authToken = token;
                     this.updateAuthUI();
+                    
+                    // Load social connection status for authenticated users
+                    await this.loadSocialConnections();
                 } else {
                     localStorage.removeItem('clipz_auth_token');
                 }
@@ -491,15 +494,33 @@ class ClipzAI {
             }
         }
     }
+    
+    async loadSocialConnections() {
+        try {
+            const response = await fetch('/api/social-accounts', {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.connectedPlatforms = data;
+                this.updateConnectionUI();
+            }
+        } catch (error) {
+            console.error('Error loading social connections:', error);
+        }
+    }
 
     updateAuthUI() {
         if (this.currentUser) {
             document.getElementById('userInfo').style.display = 'flex';
             document.getElementById('authButtons').style.display = 'none';
             document.getElementById('username').textContent = this.currentUser.username;
+            document.getElementById('authRequiredNotice').classList.add('hidden');
         } else {
             document.getElementById('userInfo').style.display = 'none';
             document.getElementById('authButtons').style.display = 'flex';
+            document.getElementById('authRequiredNotice').classList.remove('hidden');
         }
     }
 
@@ -615,6 +636,13 @@ class ClipzAI {
     }
 
     async connectSocial(platform) {
+        // Check if user is authenticated
+        if (!this.currentUser) {
+            this.showCopyNotification('Please login to connect social media accounts');
+            this.showLoginModal();
+            return;
+        }
+        
         const card = document.querySelector(`[data-platform="${platform}"]`);
         const button = card.querySelector('.btn-connect');
         const status = card.querySelector('.connection-status');
@@ -626,30 +654,35 @@ class ClipzAI {
         status.textContent = 'Connecting...';
         status.className = 'connection-status connecting';
         
-        // Update header status
+        // Update footer status
         this.setFooterStatus(platform, 'connecting');
         
         try {
-            // Simulate connection process
-            await this.simulateSocialConnection(platform);
+            // Get OAuth URL from backend
+            const response = await fetch(`/api/auth/${platform}`, {
+                headers: this.getAuthHeaders()
+            });
             
-            // Set connected state
-            this.connectedPlatforms[platform] = true;
-            card.classList.remove('connecting');
-            card.classList.add('connected');
-            button.classList.remove('connecting');
-            button.classList.add('connected');
-            button.innerHTML = '<i class="fas fa-unlink"></i> Disconnect';
-            status.textContent = 'Connected';
-            status.className = 'connection-status connected';
+            if (!response.ok) {
+                throw new Error('Failed to get auth URL');
+            }
             
-            // Update header status
-            this.setFooterStatus(platform, 'connected');
+            const data = await response.json();
             
-            // Save connection status
-            this.saveConnectionStatus();
+            // Open OAuth window
+            const authWindow = window.open(
+                data.authUrl,
+                `${platform}_auth`,
+                'width=600,height=700,scrollbars=yes,resizable=yes'
+            );
             
-            this.showCopyNotification(`${platform.charAt(0).toUpperCase() + platform.slice(1)} connected successfully!`);
+            // Listen for OAuth completion
+            const checkClosed = setInterval(() => {
+                if (authWindow.closed) {
+                    clearInterval(checkClosed);
+                    this.checkSocialConnectionStatus(platform);
+                }
+            }, 1000);
             
         } catch (error) {
             console.error(`Error connecting to ${platform}:`, error);
@@ -661,25 +694,27 @@ class ClipzAI {
             status.textContent = 'Connection Failed';
             status.className = 'connection-status disconnected';
             
-            // Update header status
+            // Update footer status
             this.setFooterStatus(platform, 'disconnected');
             
             this.showCopyNotification(`Failed to connect to ${platform}. Please try again.`);
         }
     }
 
-    async simulateSocialConnection(platform) {
-        // Simulate connection process with different platforms
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                // Simulate 90% success rate
-                if (Math.random() > 0.1) {
-                    resolve();
-                } else {
-                    reject(new Error('Connection failed'));
-                }
-            }, 2000);
-        });
+    async checkSocialConnectionStatus(platform) {
+        try {
+            const response = await fetch('/api/social-accounts', {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.connectedPlatforms = data;
+                this.updateConnectionUI();
+            }
+        } catch (error) {
+            console.error('Error checking connection status:', error);
+        }
     }
 
     loadConnectionStatus() {
@@ -739,23 +774,30 @@ class ClipzAI {
         }
     }
 
-    disconnectSocial(platform) {
-        const card = document.querySelector(`[data-platform="${platform}"]`);
-        const button = card.querySelector('.btn-connect');
-        const status = card.querySelector('.connection-status');
+    async disconnectSocial(platform) {
+        if (!this.currentUser) {
+            this.showCopyNotification('Please login to manage social media connections');
+            this.showLoginModal();
+            return;
+        }
         
-        this.connectedPlatforms[platform] = false;
-        card.classList.remove('connected');
-        button.classList.remove('connected');
-        button.innerHTML = '<i class="fas fa-link"></i> Connect';
-        status.textContent = 'Not Connected';
-        status.className = 'connection-status disconnected';
-        
-        // Update header status
-        this.setFooterStatus(platform, 'disconnected');
-        
-        this.saveConnectionStatus();
-        this.showCopyNotification(`${platform.charAt(0).toUpperCase() + platform.slice(1)} disconnected.`);
+        try {
+            const response = await fetch(`/api/social-accounts/${platform}`, {
+                method: 'DELETE',
+                headers: this.getAuthHeaders()
+            });
+            
+            if (response.ok) {
+                this.connectedPlatforms[platform] = false;
+                this.updateConnectionUI();
+                this.showCopyNotification(`${platform.charAt(0).toUpperCase() + platform.slice(1)} disconnected successfully.`);
+            } else {
+                this.showCopyNotification('Failed to disconnect account. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error disconnecting account:', error);
+            this.showCopyNotification('Failed to disconnect account. Please try again.');
+        }
     }
 
     async downloadClip(clipId) {
@@ -811,59 +853,57 @@ class ClipzAI {
     }
 
     async uploadToSocial(platform) {
+        if (!this.currentUser) {
+            this.showCopyNotification('Please login to upload to social media');
+            this.showLoginModal();
+            return;
+        }
+        
         if (!this.selectedClip) {
-            alert('Please select a clip first by clicking the "Upload" button on a clip');
+            this.showCopyNotification('Please select a clip first by clicking the "Upload" button on a clip');
             return;
         }
 
         // Check if platform is connected
         if (!this.connectedPlatforms[platform]) {
-            alert(`Please connect your ${platform} account first using the connection section above.`);
+            this.showCopyNotification(`Please connect your ${platform} account first using the connection section above.`);
             return;
         }
 
         this.showProgress(`Uploading to ${platform}...`, 30);
 
         try {
-            // Simulate upload process
-            await this.simulateUpload(platform, this.selectedClip);
+            // Real upload process with authentication
+            await this.uploadToSocialPlatform(platform, this.selectedClip);
             this.showProgress('Upload successful!', 100);
             setTimeout(() => this.hideProgress(), 2000);
         } catch (error) {
             console.error('Upload error:', error);
-            alert(`Error uploading to ${platform}. Please try again.`);
+            this.showCopyNotification(`Error uploading to ${platform}. Please try again.`);
             this.hideProgress();
         }
     }
 
-    async simulateUpload(platform, clip) {
+    async uploadToSocialPlatform(platform, clip) {
         try {
             const response = await fetch('/api/upload-social', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: this.getAuthHeaders(),
                 body: JSON.stringify({ 
                     platform: platform,
-                    clipData: clip,
-                    credentials: {} // In a real app, you'd get these from user input
+                    clipData: clip
                 })
             });
             
             if (!response.ok) {
-                throw new Error('Failed to upload to social media');
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to upload to social media');
             }
             
             return await response.json();
         } catch (error) {
-            console.error('API Error:', error);
-            // Fallback to simulation if API is not available
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    console.log(`Uploading to ${platform}:`, clip.title);
-                    resolve({ success: true, message: `Video uploaded to ${platform} successfully` });
-                }, 3000);
-            });
+            console.error('Upload API error:', error);
+            throw error;
         }
     }
 

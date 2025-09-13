@@ -253,7 +253,29 @@ header p {
 .social-connection-section p {
     text-align: center;
     color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 20px;
+}
+
+.auth-required-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 10px;
+    padding: 15px;
     margin-bottom: 30px;
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.auth-required-notice i {
+    font-size: 1.2rem;
+}
+
+.auth-required-notice.hidden {
+    display: none;
 }
 
 .connection-grid {

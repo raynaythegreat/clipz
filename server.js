@@ -18,6 +18,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'clipz-ai-secret-key-2024';
 // In-memory storage for demo (in production, use a proper database)
 const users = new Map();
 const userClips = new Map();
+const userTokens = new Map();
 
 // Middleware
 app.use(cors());
@@ -240,6 +241,108 @@ app.delete('/api/clips/:clipId', authenticateToken, (req, res) => {
     } catch (error) {
         console.error('Error deleting clip:', error);
         res.status(500).json({ error: 'Failed to delete clip' });
+    }
+});
+
+// Social Media OAuth endpoints
+app.get('/api/auth/:platform', authenticateToken, (req, res) => {
+    try {
+        const platform = req.params.platform;
+        const userId = req.user.userId;
+        
+        // Generate OAuth URLs for each platform
+        const oauthUrls = {
+            tiktok: `https://www.tiktok.com/auth/authorize/?client_key=${process.env.TIKTOK_CLIENT_KEY || 'demo'}&scope=user.info.basic,video.publish&response_type=code&redirect_uri=${encodeURIComponent(process.env.TIKTOK_REDIRECT_URI || 'http://localhost:3000/api/auth/tiktok/callback')}&state=${userId}`,
+            instagram: `https://api.instagram.com/oauth/authorize/?client_id=${process.env.INSTAGRAM_CLIENT_ID || 'demo'}&redirect_uri=${encodeURIComponent(process.env.INSTAGRAM_REDIRECT_URI || 'http://localhost:3000/api/auth/instagram/callback')}&scope=user_profile,user_media&response_type=code&state=${userId}`,
+            youtube: `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.YOUTUBE_CLIENT_ID || 'demo'}&redirect_uri=${encodeURIComponent(process.env.YOUTUBE_REDIRECT_URI || 'http://localhost:3000/api/auth/youtube/callback')}&scope=https://www.googleapis.com/auth/youtube.upload&response_type=code&access_type=offline&state=${userId}`
+        };
+        
+        if (!oauthUrls[platform]) {
+            return res.status(400).json({ error: 'Invalid platform' });
+        }
+        
+        res.json({ authUrl: oauthUrls[platform] });
+        
+    } catch (error) {
+        console.error('Error generating OAuth URL:', error);
+        res.status(500).json({ error: 'Failed to generate auth URL' });
+    }
+});
+
+// OAuth callback endpoints
+app.get('/api/auth/:platform/callback', authenticateToken, async (req, res) => {
+    try {
+        const platform = req.params.platform;
+        const code = req.query.code;
+        const userId = req.user.userId;
+        
+        if (!code) {
+            return res.status(400).json({ error: 'Authorization code not provided' });
+        }
+        
+        // In a real implementation, you would exchange the code for access tokens
+        // For demo purposes, we'll simulate successful authentication
+        const mockTokens = {
+            tiktok: { access_token: `tiktok_${userId}_${Date.now()}`, expires_in: 3600 },
+            instagram: { access_token: `instagram_${userId}_${Date.now()}`, expires_in: 3600 },
+            youtube: { access_token: `youtube_${userId}_${Date.now()}`, expires_in: 3600 }
+        };
+        
+        // Store the tokens (in production, use a secure database)
+        const userTokens = userTokens.get(userId) || {};
+        userTokens[platform] = mockTokens[platform];
+        userTokens.set(userId, userTokens);
+        
+        res.json({ 
+            success: true, 
+            message: `${platform} account connected successfully`,
+            platform: platform
+        });
+        
+    } catch (error) {
+        console.error('Error handling OAuth callback:', error);
+        res.status(500).json({ error: 'Failed to connect account' });
+    }
+});
+
+// Get user's connected social accounts
+app.get('/api/social-accounts', authenticateToken, (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const tokens = userTokens.get(userId) || {};
+        
+        const connectedAccounts = {
+            tiktok: !!tokens.tiktok,
+            instagram: !!tokens.instagram,
+            youtube: !!tokens.youtube
+        };
+        
+        res.json(connectedAccounts);
+        
+    } catch (error) {
+        console.error('Error fetching social accounts:', error);
+        res.status(500).json({ error: 'Failed to fetch social accounts' });
+    }
+});
+
+// Disconnect social account
+app.delete('/api/social-accounts/:platform', authenticateToken, (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const platform = req.params.platform;
+        
+        const tokens = userTokens.get(userId) || {};
+        delete tokens[platform];
+        userTokens.set(userId, tokens);
+        
+        res.json({ 
+            success: true, 
+            message: `${platform} account disconnected successfully` 
+        });
+        
+    } catch (error) {
+        console.error('Error disconnecting account:', error);
+        res.status(500).json({ error: 'Failed to disconnect account' });
     }
 });
 
