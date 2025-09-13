@@ -24,13 +24,23 @@ const userTokens = new Map();
 const emailVerifications = new Map(); // Store email verification tokens
 
 // Email configuration
-const emailTransporter = nodemailer.createTransporter({
-    service: 'gmail', // You can use other services like SendGrid, Mailgun, etc.
-    auth: {
-        user: process.env.EMAIL_USER || 'your-email@gmail.com',
-        pass: process.env.EMAIL_PASS || 'your-app-password'
-    }
-});
+let emailTransporter = null;
+
+// Only create email transporter if credentials are provided
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS && 
+    process.env.EMAIL_USER !== 'your-email@gmail.com' && 
+    process.env.EMAIL_PASS !== 'your-app-password') {
+    emailTransporter = nodemailer.createTransporter({
+        service: 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+    console.log('Email service configured');
+} else {
+    console.log('Email service not configured - using mock mode');
+}
 
 // Email verification helper functions
 async function sendVerificationEmail(email, username, verificationToken) {
@@ -92,9 +102,17 @@ async function sendVerificationEmail(email, username, verificationToken) {
     };
 
     try {
-        await emailTransporter.sendMail(mailOptions);
-        console.log(`Verification email sent to ${email}`);
-        return true;
+        if (emailTransporter) {
+            await emailTransporter.sendMail(mailOptions);
+            console.log(`Verification email sent to ${email}`);
+            return true;
+        } else {
+            // Mock mode - just log the verification URL
+            console.log(`MOCK MODE: Verification email would be sent to ${email}`);
+            console.log(`Verification URL: ${verificationUrl}`);
+            console.log(`Email content: Welcome ${username}! Please verify your email.`);
+            return true; // Return true in mock mode so registration doesn't fail
+        }
     } catch (error) {
         console.error('Error sending verification email:', error);
         return false;
@@ -133,16 +151,63 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Test endpoint
+app.get('/api/test', (req, res) => {
+    res.json({ 
+        message: 'Server is running!', 
+        timestamp: new Date().toISOString(),
+        emailConfigured: emailTransporter !== null
+    });
+});
+
+// Development endpoint to manually verify users (for testing)
+app.post('/api/dev/verify-user', (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+        
+        const user = users.get(email);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Mark user as verified
+        user.isVerified = true;
+        users.set(email, user);
+        
+        console.log('User manually verified:', email);
+        res.json({ 
+            message: 'User verified successfully',
+            user: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                isVerified: true
+            }
+        });
+        
+    } catch (error) {
+        console.error('Manual verification error:', error);
+        res.status(500).json({ error: 'Verification failed' });
+    }
+});
+
 // Authentication endpoints
 app.post('/api/register', async (req, res) => {
     try {
+        console.log('Registration attempt:', { email: req.body.email, username: req.body.username });
         const { email, password, username } = req.body;
         
         if (!email || !password || !username) {
+            console.log('Registration failed: Missing required fields');
             return res.status(400).json({ error: 'Email, password, and username are required' });
         }
         
         if (users.has(email)) {
+            console.log('Registration failed: User already exists');
             return res.status(400).json({ error: 'User already exists' });
         }
         
@@ -172,9 +237,11 @@ app.post('/api/register', async (req, res) => {
         });
         
         // Send verification email
+        console.log('Sending verification email to:', email);
         const emailSent = await sendVerificationEmail(email, username, verificationToken);
         
         if (!emailSent) {
+            console.log('Email sending failed, cleaning up user');
             // If email fails, clean up the user
             users.delete(email);
             userClips.delete(userId);
@@ -182,6 +249,7 @@ app.post('/api/register', async (req, res) => {
             return res.status(500).json({ error: 'Failed to send verification email' });
         }
         
+        console.log('Registration successful for:', email);
         res.json({
             message: 'Account created successfully! Please check your email to verify your account.',
             email: email,
