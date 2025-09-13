@@ -12,8 +12,32 @@ class ClipzAI {
         this.currentUser = null;
         this.authToken = null;
         this.initializeEventListeners();
+        this.initializeAuth();
         this.loadConnectionStatus();
-        this.checkAuthStatus();
+    }
+
+    async initializeAuth() {
+        // Check server availability first
+        const serverAvailable = await this.checkServerAvailability();
+        if (serverAvailable) {
+            console.log('Server is available, using online mode');
+            await this.checkAuthStatus();
+        } else {
+            console.log('Server not available, checking offline mode');
+            await this.checkOfflineAuthStatus();
+        }
+    }
+
+    async checkServerAvailability() {
+        try {
+            const response = await fetch('/api/test', { 
+                method: 'GET',
+                timeout: 3000 // 3 second timeout
+            });
+            return response.ok;
+        } catch (error) {
+            return false;
+        }
     }
 
     initializeEventListeners() {
@@ -549,6 +573,7 @@ class ClipzAI {
     async checkAuthStatus() {
         const token = localStorage.getItem('clipz_auth_token');
         if (token) {
+            // First, try to validate with server (online mode)
             try {
                 const response = await fetch('/api/profile', {
                     headers: {
@@ -570,24 +595,52 @@ class ClipzAI {
                     
                     // Show welcome back message
                     this.showCopyNotification(`Welcome back, ${this.currentUser.username}!`);
+                    console.log('Online authentication successful');
+                    return; // Successfully authenticated online
                 } else if (response.status === 401) {
                     // Token expired, try to refresh
-                    await this.refreshToken();
-                } else {
-                    localStorage.removeItem('clipz_auth_token');
+                    const refreshSuccess = await this.refreshToken();
+                    if (refreshSuccess) {
+                        console.log('Token refreshed successfully');
+                        return; // Successfully refreshed online
+                    }
                 }
+                
+                // If we get here, online auth failed, clear token
+                localStorage.removeItem('clipz_auth_token');
+                this.showCopyNotification('Session expired. Please login again.', 'warning');
+                
             } catch (error) {
-                console.error('Auth check failed:', error);
-                // Try offline mode if server is not available
-                this.checkOfflineAuthStatus();
+                console.error('Online auth check failed:', error);
+                // Only fall back to offline if server is completely unavailable
+                if (this.isServerUnavailable(error)) {
+                    console.log('Server unavailable, checking offline mode');
+                    this.checkOfflineAuthStatus();
+                } else {
+                    // Network error or other issue, don't fall back to offline
+                    localStorage.removeItem('clipz_auth_token');
+                    this.showCopyNotification('Authentication failed. Please login again.', 'error');
+                }
             }
         } else {
-            // No token, check for offline auth
+            // No token, check for offline auth only if server is unavailable
             this.checkOfflineAuthStatus();
         }
     }
 
-    checkOfflineAuthStatus() {
+    async checkOfflineAuthStatus() {
+        // First check if server is available
+        try {
+            const response = await fetch('/api/test', { method: 'GET' });
+            if (response.ok) {
+                console.log('Server is available, skipping offline mode');
+                return; // Server is available, don't use offline mode
+            }
+        } catch (error) {
+            // Server is not available, proceed with offline mode
+            console.log('Server not available, checking offline mode');
+        }
+
         const token = localStorage.getItem('clipz_auth_token');
         if (token && token.startsWith('token_')) {
             // This is an offline token, try to find the user
@@ -628,17 +681,28 @@ class ClipzAI {
                 this.updateAuthUI();
                 await this.loadSocialConnections();
                 await this.loadUserClips();
+                return true; // Successfully refreshed
             } else {
                 localStorage.removeItem('clipz_auth_token');
                 this.currentUser = null;
                 this.authToken = null;
+                return false; // Failed to refresh
             }
         } catch (error) {
             console.error('Token refresh failed:', error);
             localStorage.removeItem('clipz_auth_token');
             this.currentUser = null;
             this.authToken = null;
+            return false; // Failed to refresh
         }
+    }
+
+    isServerUnavailable(error) {
+        // Check if the error indicates server is completely unavailable
+        return error.name === 'TypeError' && 
+               (error.message.includes('Failed to fetch') || 
+                error.message.includes('NetworkError') ||
+                error.message.includes('ERR_CONNECTION_REFUSED'));
     }
     
     async loadSocialConnections() {
@@ -677,7 +741,22 @@ class ClipzAI {
         if (this.currentUser) {
             document.getElementById('userInfo').style.display = 'flex';
             document.getElementById('authButtons').style.display = 'none';
-            document.getElementById('username').textContent = this.currentUser.username;
+            
+            // Show online/offline status
+            const isOfflineMode = this.authToken && this.authToken.startsWith('token_');
+            const statusText = isOfflineMode ? `${this.currentUser.username} (Offline)` : this.currentUser.username;
+            document.getElementById('username').textContent = statusText;
+            
+            // Add status indicator
+            const usernameElement = document.getElementById('username');
+            if (isOfflineMode) {
+                usernameElement.style.color = '#ffa500'; // Orange for offline
+                usernameElement.title = 'Offline Mode - Limited functionality';
+            } else {
+                usernameElement.style.color = '#00ff00'; // Green for online
+                usernameElement.title = 'Online Mode - Full functionality';
+            }
+            
             document.getElementById('authRequiredNotice').classList.add('hidden');
             document.getElementById('userHistorySection').classList.remove('hidden');
             document.getElementById('dashboardSection').classList.remove('hidden');
@@ -829,8 +908,13 @@ class ClipzAI {
             }
         } catch (error) {
             console.error('Login error:', error);
-            // Fallback to offline mode when server is not available
-            this.handleOfflineLogin(email, password);
+            // Only fall back to offline mode if server is completely unavailable
+            if (this.isServerUnavailable(error)) {
+                console.log('Server unavailable, trying offline login');
+                this.handleOfflineLogin(email, password);
+            } else {
+                this.showCopyNotification('Login failed. Please check your connection and try again.', 'error');
+            }
         } finally {
             // Reset button state
             submitBtn.innerHTML = originalText;
@@ -901,8 +985,13 @@ class ClipzAI {
             }
         } catch (error) {
             console.error('Signup error:', error);
-            // Fallback to offline mode when server is not available
-            this.handleOfflineSignup(username, email, password);
+            // Only fall back to offline mode if server is completely unavailable
+            if (this.isServerUnavailable(error)) {
+                console.log('Server unavailable, trying offline signup');
+                this.handleOfflineSignup(username, email, password);
+            } else {
+                this.showCopyNotification('Registration failed. Please check your connection and try again.', 'error');
+            }
         } finally {
             // Reset button state
             submitBtn.innerHTML = originalText;
