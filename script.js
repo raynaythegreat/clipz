@@ -255,10 +255,6 @@ class ClipzAI {
         document.getElementById('clipsSection').classList.remove('hidden');
         document.getElementById('socialSection').classList.remove('hidden');
         
-        // Save clips to localStorage if in offline mode
-        if (this.currentUser && this.authToken && this.authToken.startsWith('token_')) {
-            this.saveOfflineUserClips();
-        }
     }
     
     createClipCard(clip, isHistory = false) {
@@ -578,64 +574,11 @@ class ClipzAI {
                 }
             } catch (error) {
                 console.error('Auth check failed:', error);
-                // Try offline mode if server is not available
-                this.checkOfflineAuthStatus();
-            }
-        } else {
-            // No token, check for offline auth
-            this.checkOfflineAuthStatus();
-        }
-    }
-
-    checkOfflineAuthStatus() {
-        const token = localStorage.getItem('clipz_auth_token');
-        if (token && token.startsWith('token_')) {
-            // This is an offline token, try to find the user
-            const existingUsers = JSON.parse(localStorage.getItem('clipz_users') || '{}');
-            
-            // Find user by token (simple approach - in real app you'd store token->user mapping)
-            for (const [email, user] of Object.entries(existingUsers)) {
-                if (user.id) {
-                    this.currentUser = user;
-                    this.authToken = token;
-                    this.updateAuthUI();
-                    
-                    // Load user's clips from localStorage if available
-                    this.loadOfflineUserClips();
-                    
-                    // Load social connections
-                    this.checkOfflineSocialConnectionStatus();
-                    
-                    console.log('Offline auth successful:', user);
-                    this.showCopyNotification(`Welcome back, ${user.username}! (Offline Mode)`, 'success');
-                    break;
-                }
+                localStorage.removeItem('clipz_auth_token');
             }
         }
     }
 
-    loadOfflineUserClips() {
-        try {
-            const userClips = JSON.parse(localStorage.getItem(`clipz_user_clips_${this.currentUser.id}`) || '[]');
-            this.generatedClips = userClips;
-            this.displayClips(userClips);
-            console.log('Loaded offline user clips:', userClips.length);
-        } catch (error) {
-            console.error('Error loading offline user clips:', error);
-            this.generatedClips = [];
-        }
-    }
-
-    saveOfflineUserClips() {
-        if (this.currentUser && this.generatedClips) {
-            try {
-                localStorage.setItem(`clipz_user_clips_${this.currentUser.id}`, JSON.stringify(this.generatedClips));
-                console.log('Saved offline user clips:', this.generatedClips.length);
-            } catch (error) {
-                console.error('Error saving offline user clips:', error);
-            }
-        }
-    }
     
     async refreshToken() {
         try {
@@ -680,8 +623,6 @@ class ClipzAI {
             }
         } catch (error) {
             console.error('Error loading social connections:', error);
-            // Fallback to offline mode
-            this.checkOfflineSocialConnectionStatus();
         }
     }
     
@@ -857,8 +798,7 @@ class ClipzAI {
             }
         } catch (error) {
             console.error('Login error:', error);
-            // Fallback to offline mode when server is not available
-            this.handleOfflineLogin(email, password);
+            this.showCopyNotification('Login failed. Please ensure the server is running.', 'error');
         } finally {
             // Reset button state
             submitBtn.innerHTML = originalText;
@@ -929,8 +869,7 @@ class ClipzAI {
             }
         } catch (error) {
             console.error('Signup error:', error);
-            // Fallback to local storage mode when server is not available
-            this.handleOfflineSignup(username, email, password);
+            this.showCopyNotification('Registration failed. Please ensure the server is running.', 'error');
         } finally {
             // Reset button state
             submitBtn.innerHTML = originalText;
@@ -1019,42 +958,20 @@ class ClipzAI {
         } catch (error) {
             console.error(`Error connecting to ${platform}:`, error);
             
-            // Fallback to offline simulation
-            this.simulateOfflineSocialConnection(platform, card, button, status);
+            // Reset to disconnected state
+            card.classList.remove('connecting');
+            button.classList.remove('connecting');
+            button.innerHTML = '<i class="fas fa-link"></i> Connect';
+            status.textContent = 'Connection Failed';
+            status.className = 'connection-status disconnected';
+            
+            // Update footer status
+            this.setFooterStatus(platform, 'disconnected');
+            
+            this.showCopyNotification(`Failed to connect to ${platform}. Please ensure the server is running.`, 'error');
         }
     }
 
-    simulateOfflineSocialConnection(platform, card, button, status) {
-        // Simulate connection process with realistic timing
-        setTimeout(() => {
-            // Simulate successful connection
-            this.connectedPlatforms[platform] = {
-                platform: platform,
-                connected: true,
-                username: `@${this.currentUser.username}_${platform}`,
-                connectedAt: new Date().toISOString()
-            };
-            
-            // Update UI to connected state
-            card.classList.remove('connecting');
-            button.classList.remove('connecting');
-            button.innerHTML = '<i class="fas fa-unlink"></i> Disconnect';
-            status.textContent = 'Connected';
-            status.className = 'connection-status connected';
-            
-            // Update footer status
-            this.setFooterStatus(platform, 'connected');
-            
-            // Save connection status to localStorage
-            this.saveConnectionStatus();
-            
-            // Show success message
-            this.showCopyNotification(`Successfully connected to ${platform}! (Offline Mode)`, 'success');
-            
-            console.log(`Offline connection to ${platform} successful`);
-            
-        }, 2000); // 2 second delay to simulate real connection
-    }
 
     async checkSocialConnectionStatus(platform) {
         try {
@@ -1069,24 +986,9 @@ class ClipzAI {
             }
         } catch (error) {
             console.error('Error checking connection status:', error);
-            // Fallback to offline status check
-            this.checkOfflineSocialConnectionStatus();
         }
     }
 
-    checkOfflineSocialConnectionStatus() {
-        // Load connection status from localStorage
-        const saved = localStorage.getItem('clipz_social_connections');
-        if (saved) {
-            try {
-                this.connectedPlatforms = JSON.parse(saved);
-                this.updateConnectionUI();
-            } catch (error) {
-                console.error('Error loading saved connections:', error);
-                this.connectedPlatforms = {};
-            }
-        }
-    }
 
     loadConnectionStatus() {
         // Load saved connection status from localStorage
@@ -1168,11 +1070,7 @@ class ClipzAI {
             }
         } catch (error) {
             console.error('Error disconnecting account:', error);
-            // Fallback to offline disconnection
-            this.connectedPlatforms[platform] = false;
-            this.updateConnectionUI();
-            this.saveConnectionStatus();
-            this.showCopyNotification(`${platform.charAt(0).toUpperCase() + platform.slice(1)} disconnected successfully. (Offline Mode)`);
+            this.showCopyNotification('Failed to disconnect account. Please ensure the server is running.', 'error');
         }
     }
 
@@ -1255,26 +1153,11 @@ class ClipzAI {
             setTimeout(() => this.hideProgress(), 2000);
         } catch (error) {
             console.error('Upload error:', error);
-            // Fallback to offline simulation
-            this.simulateOfflineUpload(platform);
+            this.showCopyNotification(`Error uploading to ${platform}. Please ensure the server is running.`, 'error');
+            this.hideProgress();
         }
     }
 
-    simulateOfflineUpload(platform) {
-        // Simulate upload process with realistic timing
-        this.showProgress(`Uploading to ${platform}...`, 50);
-        
-        setTimeout(() => {
-            this.showProgress('Processing video...', 75);
-            
-            setTimeout(() => {
-                this.showProgress('Upload successful!', 100);
-                this.showCopyNotification(`Successfully uploaded to ${platform}! (Offline Mode)`, 'success');
-                
-                setTimeout(() => this.hideProgress(), 2000);
-            }, 1500);
-        }, 2000);
-    }
 
     async uploadToSocialPlatform(platform, clip) {
         try {
@@ -1510,93 +1393,6 @@ class ClipzAI {
         }
     }
 
-    // Offline mode handlers
-    handleOfflineSignup(username, email, password) {
-        try {
-            // Check if user already exists in localStorage
-            const existingUsers = JSON.parse(localStorage.getItem('clipz_users') || '{}');
-            
-            if (existingUsers[email]) {
-                this.showCopyNotification('User already exists. Please try logging in instead.', 'error');
-                return;
-            }
-            
-            // Create user object
-            const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            const user = {
-                id: userId,
-                email: email,
-                username: username,
-                isVerified: true, // Auto-verify in offline mode
-                createdAt: new Date().toISOString()
-            };
-            
-            // Store user
-            existingUsers[email] = user;
-            localStorage.setItem('clipz_users', JSON.stringify(existingUsers));
-            
-            // Create auth token
-            const token = 'token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('clipz_auth_token', token);
-            
-            // Set current user
-            this.currentUser = user;
-            this.authToken = token;
-            
-            // Initialize empty clips array
-            this.generatedClips = [];
-            this.saveOfflineUserClips();
-            
-            // Update UI
-            this.updateAuthUI();
-            this.closeSignupModal();
-            
-            // Show success message
-            this.showCopyNotification('Account created successfully! (Offline Mode)', 'success');
-            
-            console.log('Offline signup successful:', user);
-            
-        } catch (error) {
-            console.error('Offline signup error:', error);
-            this.showCopyNotification('Registration failed. Please try again.', 'error');
-        }
-    }
-
-    handleOfflineLogin(email, password) {
-        try {
-            const existingUsers = JSON.parse(localStorage.getItem('clipz_users') || '{}');
-            const user = existingUsers[email];
-            
-            if (!user) {
-                this.showCopyNotification('User not found. Please sign up first.', 'error');
-                return;
-            }
-            
-            // Create auth token
-            const token = 'token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('clipz_auth_token', token);
-            
-            // Set current user
-            this.currentUser = user;
-            this.authToken = token;
-            
-            // Load user's clips
-            this.loadOfflineUserClips();
-            
-            // Update UI
-            this.updateAuthUI();
-            this.closeLoginModal();
-            
-            // Show success message
-            this.showCopyNotification('Login successful! (Offline Mode)', 'success');
-            
-            console.log('Offline login successful:', user);
-            
-        } catch (error) {
-            console.error('Offline login error:', error);
-            this.showCopyNotification('Login failed. Please try again.', 'error');
-        }
-    }
 
     // Email verification functions
     showEmailVerificationModal(email) {
