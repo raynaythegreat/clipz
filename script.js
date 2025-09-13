@@ -18,6 +18,15 @@ class ClipzAI {
         document.querySelectorAll('.social-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.uploadToSocial(e.target.dataset.platform));
         });
+        
+        // Add click listeners to header status indicators
+        document.querySelectorAll('.platform-status').forEach(status => {
+            status.addEventListener('click', () => {
+                document.querySelector('.social-connection-section').scrollIntoView({ 
+                    behavior: 'smooth' 
+                });
+            });
+        });
     }
 
     async analyzeVideo() {
@@ -433,6 +442,9 @@ class ClipzAI {
         status.textContent = 'Connecting...';
         status.className = 'connection-status connecting';
         
+        // Update header status
+        this.setHeaderStatus(platform, 'connecting');
+        
         try {
             // Simulate connection process
             await this.simulateSocialConnection(platform);
@@ -448,6 +460,9 @@ class ClipzAI {
             status.textContent = 'Connected';
             status.className = 'connection-status connected';
             
+            // Update header status
+            this.setHeaderStatus(platform, 'connected');
+            
             // Save connection status
             this.saveConnectionStatus();
             
@@ -462,6 +477,9 @@ class ClipzAI {
             button.innerHTML = '<i class="fas fa-link"></i> Connect';
             status.textContent = 'Connection Failed';
             status.className = 'connection-status disconnected';
+            
+            // Update header status
+            this.setHeaderStatus(platform, 'disconnected');
             
             this.showCopyNotification(`Failed to connect to ${platform}. Please try again.`);
         }
@@ -514,6 +532,29 @@ class ClipzAI {
                 status.className = 'connection-status connected';
             }
         });
+        
+        // Update header status indicators
+        this.updateHeaderStatus();
+    }
+
+    updateHeaderStatus() {
+        Object.keys(this.connectedPlatforms).forEach(platform => {
+            const headerStatus = document.querySelector(`.platform-status[data-platform="${platform}"] .status-dot`);
+            if (headerStatus) {
+                if (this.connectedPlatforms[platform]) {
+                    headerStatus.className = 'status-dot connected';
+                } else {
+                    headerStatus.className = 'status-dot disconnected';
+                }
+            }
+        });
+    }
+
+    setHeaderStatus(platform, status) {
+        const headerStatus = document.querySelector(`.platform-status[data-platform="${platform}"] .status-dot`);
+        if (headerStatus) {
+            headerStatus.className = `status-dot ${status}`;
+        }
     }
 
     disconnectSocial(platform) {
@@ -528,6 +569,9 @@ class ClipzAI {
         button.onclick = () => this.connectSocial(platform);
         status.textContent = 'Not Connected';
         status.className = 'connection-status disconnected';
+        
+        // Update header status
+        this.setHeaderStatus(platform, 'disconnected');
         
         this.saveConnectionStatus();
         this.showCopyNotification(`${platform.charAt(0).toUpperCase() + platform.slice(1)} disconnected.`);
