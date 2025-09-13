@@ -2,6 +2,8 @@ class ClipzAI {
     constructor() {
         this.currentVideo = null;
         this.generatedClips = [];
+        this.selectedClip = null;
+        this.previewClip = null;
         this.initializeEventListeners();
     }
 
@@ -142,11 +144,17 @@ class ClipzAI {
             const clipCard = document.createElement('div');
             clipCard.className = 'clip-card';
             clipCard.innerHTML = `
+                <button class="preview-btn" onclick="clipzAI.previewClip(${clip.id})" title="Preview Clip">
+                    <i class="fas fa-play"></i>
+                </button>
                 <div class="clip-preview">
-                    <i class="fas fa-play-circle" style="font-size: 3rem; color: #667eea;"></i>
+                    <i class="fas fa-video" style="font-size: 3rem; color: #667eea;"></i>
                 </div>
                 <div class="clip-title">${clip.title}</div>
                 <div class="clip-caption">${clip.caption}</div>
+                <div class="clip-timing">
+                    <small>${clip.startTime} - ${clip.endTime}</small>
+                </div>
                 <div class="clip-actions">
                     <button class="btn btn-small btn-download" onclick="clipzAI.downloadClip(${clip.id})">
                         <i class="fas fa-download"></i> Download
@@ -175,11 +183,177 @@ class ClipzAI {
         }
     }
 
-    downloadClip(clipId) {
+    async previewClip(clipId) {
         const clip = this.generatedClips.find(c => c.id === clipId);
-        if (clip) {
-            // In a real implementation, this would download the actual video file
-            alert(`Downloading clip: ${clip.title}`);
+        if (!clip) return;
+
+        this.previewClip = clip;
+        
+        // Show modal
+        document.getElementById('previewModal').classList.remove('hidden');
+        
+        // Update modal content
+        document.getElementById('previewTitle').textContent = 'Clip Preview';
+        document.getElementById('previewClipTitle').textContent = clip.title;
+        document.getElementById('previewCaption').textContent = clip.caption;
+        document.getElementById('previewStartTime').textContent = clip.startTime;
+        document.getElementById('previewEndTime').textContent = clip.endTime;
+        
+        // Generate preview video (in real implementation, this would be the actual clip)
+        await this.generatePreviewVideo(clip);
+    }
+
+    async generatePreviewVideo(clip) {
+        const video = document.getElementById('previewVideo');
+        
+        try {
+            // Try to generate actual clip first
+            if (this.currentVideo && this.currentVideo.url) {
+                const response = await fetch('/api/generate-clip', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        videoPath: this.currentVideo.url,
+                        startTime: clip.startSeconds || this.timeToSeconds(clip.startTime),
+                        endTime: clip.endSeconds || this.timeToSeconds(clip.endTime),
+                        clipId: clip.id
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.clipPath) {
+                        video.src = result.clipPath;
+                        video.style.display = 'block';
+                        return;
+                    }
+                }
+            }
+            
+            // Fallback to original video with time constraints
+            if (this.currentVideo && this.currentVideo.url) {
+                video.src = this.currentVideo.url;
+                video.currentTime = this.timeToSeconds(clip.startTime);
+                
+                // Set up video to play only the clip segment
+                video.addEventListener('loadedmetadata', () => {
+                    const startTime = this.timeToSeconds(clip.startTime);
+                    const endTime = this.timeToSeconds(clip.endTime);
+                    
+                    video.currentTime = startTime;
+                    
+                    video.addEventListener('timeupdate', () => {
+                        if (video.currentTime >= endTime) {
+                            video.pause();
+                            video.currentTime = startTime;
+                        }
+                    });
+                });
+                
+                video.style.display = 'block';
+            } else {
+                throw new Error('No video source available');
+            }
+            
+        } catch (error) {
+            console.error('Error loading preview video:', error);
+            // Show placeholder if video can't be loaded
+            video.style.display = 'none';
+            document.querySelector('.preview-video-container').innerHTML = `
+                <div style="padding: 60px; text-align: center; background: #f8f9fa; border-radius: 10px;">
+                    <i class="fas fa-video" style="font-size: 4rem; color: #667eea; margin-bottom: 20px;"></i>
+                    <h4>Preview Ready</h4>
+                    <p>Clip: ${clip.startTime} - ${clip.endTime}</p>
+                    <p><em>Generating video preview...</em></p>
+                </div>
+            `;
+        }
+    }
+
+    timeToSeconds(timeStr) {
+        const parts = timeStr.split(':');
+        if (parts.length === 2) {
+            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        } else if (parts.length === 3) {
+            return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+        }
+        return 0;
+    }
+
+    closePreview() {
+        document.getElementById('previewModal').classList.add('hidden');
+        this.previewClip = null;
+        
+        // Reset video
+        const video = document.getElementById('previewVideo');
+        video.pause();
+        video.currentTime = 0;
+        video.src = '';
+    }
+
+    downloadPreviewClip() {
+        if (this.previewClip) {
+            this.downloadClip(this.previewClip.id);
+            this.closePreview();
+        }
+    }
+
+    uploadPreviewClip() {
+        if (this.previewClip) {
+            this.selectedClip = this.previewClip;
+            this.closePreview();
+            // Show social media upload options
+            document.getElementById('socialSection').scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    async downloadClip(clipId) {
+        const clip = this.generatedClips.find(c => c.id === clipId);
+        if (!clip) return;
+
+        try {
+            this.showProgress('Generating clip for download...', 50);
+            
+            // Generate the actual clip
+            const response = await fetch('/api/generate-clip', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    videoPath: this.currentVideo.url,
+                    startTime: clip.startSeconds || this.timeToSeconds(clip.startTime),
+                    endTime: clip.endSeconds || this.timeToSeconds(clip.endTime),
+                    clipId: clip.id
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                if (result.clipPath) {
+                    // Create download link
+                    const link = document.createElement('a');
+                    link.href = result.clipPath;
+                    link.download = `${clip.title.replace(/[^a-z0-9]/gi, '_')}.mp4`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    this.showProgress('Download complete!', 100);
+                    setTimeout(() => this.hideProgress(), 2000);
+                } else {
+                    throw new Error('No clip path returned');
+                }
+            } else {
+                throw new Error('Failed to generate clip');
+            }
+            
+        } catch (error) {
+            console.error('Download error:', error);
+            alert(`Error downloading clip: ${error.message}`);
+            this.hideProgress();
         }
     }
 
@@ -248,24 +422,28 @@ class ClipzAI {
 // Initialize the app
 const clipzAI = new ClipzAI();
 
-// Add some demo functionality
+// Production-ready initialization
 document.addEventListener('DOMContentLoaded', () => {
-    // Add demo URL for testing
-    const demoUrls = [
-        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        'https://www.tiktok.com/@user/video/1234567890',
-        'https://www.instagram.com/p/ABC123/'
-    ];
+    // Add helpful placeholder text
+    const urlInput = document.getElementById('videoUrl');
+    urlInput.placeholder = 'https://www.youtube.com/watch?v=... or https://www.tiktok.com/@user/video/...';
     
-    // Add demo button
-    const demoBtn = document.createElement('button');
-    demoBtn.className = 'btn btn-primary';
-    demoBtn.style.marginTop = '10px';
-    demoBtn.innerHTML = '<i class="fas fa-magic"></i> Try Demo';
-    demoBtn.onclick = () => {
-        const randomUrl = demoUrls[Math.floor(Math.random() * demoUrls.length)];
-        document.getElementById('videoUrl').value = randomUrl;
-    };
+    // Add input validation
+    urlInput.addEventListener('input', (e) => {
+        const url = e.target.value.trim();
+        const isValidUrl = url.startsWith('http://') || url.startsWith('https://');
+        
+        if (url && !isValidUrl) {
+            e.target.style.borderColor = '#dc3545';
+        } else {
+            e.target.style.borderColor = '#e1e5e9';
+        }
+    });
     
-    document.querySelector('.input-group').appendChild(demoBtn);
+    // Add keyboard shortcut for analyze button
+    urlInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('analyzeBtn').click();
+        }
+    });
 });

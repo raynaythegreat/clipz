@@ -43,6 +43,41 @@
                 </div>
             </div>
 
+            <!-- Clip Preview Modal -->
+            <div id="previewModal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="previewTitle">Clip Preview</h3>
+                        <span class="close" onclick="clipzAI.closePreview()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="preview-video-container">
+                            <video id="previewVideo" controls>
+                                <source src="" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <div class="preview-info">
+                            <h4 id="previewClipTitle"></h4>
+                            <p id="previewCaption"></p>
+                            <div class="preview-timing">
+                                <span>Start: <strong id="previewStartTime"></strong></span>
+                                <span>End: <strong id="previewEndTime"></strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="clipzAI.closePreview()">Cancel</button>
+                        <button class="btn btn-download" onclick="clipzAI.downloadPreviewClip()">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                        <button class="btn btn-primary" onclick="clipzAI.uploadPreviewClip()">
+                            <i class="fas fa-upload"></i> Upload to Social Media
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="social-upload-section hidden" id="socialSection">
                 <h2>Upload to Social Media</h2>
                 <div class="social-buttons">
