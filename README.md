@@ -118,7 +118,7 @@ If you encounter any issues or have questions, please open an issue on GitHub.
 
 ---
 
-**Note**: This is a demo application. For production use, you'll need to:
+**Note**: For production use, you'll need to:
 - Add proper error handling
 - Implement user authentication
 - Add rate limiting

@@ -66,7 +66,7 @@
 ## Testing
 
 1. Open `index.html` in your browser
-2. Try the demo button or enter a YouTube URL
+2. Enter a YouTube URL or any video URL
 3. Watch the AI generate clips with captions
 4. Test the social media upload interface
 
