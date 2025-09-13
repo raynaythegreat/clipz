@@ -89,22 +89,85 @@ header p {
     opacity: 0.9;
 }
 
-/* Header Connection Status */
-.header-connections {
-    margin-top: 20px;
+/* Header Actions */
+.header-actions {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
 }
 
-.connection-status-header {
+.user-info {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 15px;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 12px 20px;
-    border-radius: 25px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
 }
+
+.welcome-text {
+    color: white;
+    font-weight: 600;
+}
+
+.auth-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-logout {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-logout:hover {
+    background: #c82333;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1rem;
+    backdrop-filter: blur(10px);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+}
+
+.auth-switch {
+    text-align: center;
+    margin-top: 20px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.auth-switch a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-switch a:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+/* Status Styles (used in footer) */
 
 .status-label {
     color: white;
@@ -939,6 +1002,31 @@ footer {
 .footer-tagline p {
     color: rgba(255, 255, 255, 0.8);
     font-size: 1rem;
+}
+
+.footer-connections {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.footer-connections h4 {
+    color: white;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.connection-status-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px 20px;
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin: 0 auto;
+    max-width: 400px;
 }
 
 .footer-social {

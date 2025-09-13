@@ -11,23 +11,20 @@
     <div class="container">
         <header>
             <h1><i class="fas fa-video"></i> Clipz AI</h1>
-            <div class="header-connections">
-                <div class="connection-status-header">
-                    <span class="status-label">Connected:</span>
-                    <div class="platform-status-icons">
-                        <div class="platform-status" data-platform="tiktok" title="TikTok">
-                            <i class="fab fa-tiktok"></i>
-                            <span class="status-dot disconnected"></span>
-                        </div>
-                        <div class="platform-status" data-platform="instagram" title="Instagram">
-                            <i class="fab fa-instagram"></i>
-                            <span class="status-dot disconnected"></span>
-                        </div>
-                        <div class="platform-status" data-platform="youtube" title="YouTube Shorts">
-                            <i class="fab fa-youtube"></i>
-                            <span class="status-dot disconnected"></span>
-                        </div>
-                    </div>
+            <div class="header-actions">
+                <div class="user-info" id="userInfo" style="display: none;">
+                    <span class="welcome-text">Welcome, <span id="username"></span>!</span>
+                    <button class="btn btn-small btn-logout" onclick="clipzAI.logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+                <div class="auth-buttons" id="authButtons">
+                    <button class="btn btn-primary" onclick="clipzAI.showLoginModal()">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                    <button class="btn btn-secondary" onclick="clipzAI.showSignupModal()">
+                        <i class="fas fa-user-plus"></i> Sign Up
+                    </button>
                 </div>
             </div>
         </header>
@@ -183,6 +180,27 @@
                     <p>Transform any video into engaging social media content</p>
                 </div>
                 
+                <div class="footer-connections">
+                    <h4>Account Connections</h4>
+                    <div class="connection-status-footer">
+                        <span class="status-label">Connected:</span>
+                        <div class="platform-status-icons">
+                            <div class="platform-status" data-platform="tiktok" title="TikTok">
+                                <i class="fab fa-tiktok"></i>
+                                <span class="status-dot disconnected"></span>
+                            </div>
+                            <div class="platform-status" data-platform="instagram" title="Instagram">
+                                <i class="fab fa-instagram"></i>
+                                <span class="status-dot disconnected"></span>
+                            </div>
+                            <div class="platform-status" data-platform="youtube" title="YouTube Shorts">
+                                <i class="fab fa-youtube"></i>
+                                <span class="status-dot disconnected"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="footer-social">
                     <h4>Connect with us</h4>
                     <div class="social-links">
@@ -210,6 +228,66 @@
                 </div>
             </div>
         </footer>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Login to Clipz AI</h3>
+                <span class="close" onclick="clipzAI.closeLoginModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm" onsubmit="clipzAI.login(event)">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+                <p class="auth-switch">
+                    Don't have an account? <a href="#" onclick="clipzAI.switchToSignup()">Sign up here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div id="signupModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Account</h3>
+                <span class="close" onclick="clipzAI.closeSignupModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="signupForm" onsubmit="clipzAI.signup(event)">
+                    <div class="form-group">
+                        <label for="signupUsername">Username</label>
+                        <input type="text" id="signupUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input type="password" id="signupPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+                <p class="auth-switch">
+                    Already have an account? <a href="#" onclick="clipzAI.switchToLogin()">Login here</a>
+                </p>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>

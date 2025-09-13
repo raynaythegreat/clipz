@@ -9,8 +9,11 @@ class ClipzAI {
             instagram: false,
             youtube: false
         };
+        this.currentUser = null;
+        this.authToken = null;
         this.initializeEventListeners();
         this.loadConnectionStatus();
+        this.checkAuthStatus();
     }
 
     initializeEventListeners() {
@@ -19,7 +22,7 @@ class ClipzAI {
             btn.addEventListener('click', (e) => this.uploadToSocial(e.target.dataset.platform));
         });
         
-        // Add click listeners to header status indicators
+        // Add click listeners to footer status indicators
         document.querySelectorAll('.platform-status').forEach(status => {
             status.addEventListener('click', () => {
                 document.querySelector('.social-connection-section').scrollIntoView({ 
@@ -430,6 +433,154 @@ class ClipzAI {
         }, 3000);
     }
 
+    // Authentication Methods
+    async checkAuthStatus() {
+        const token = localStorage.getItem('clipz_auth_token');
+        if (token) {
+            try {
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    this.currentUser = data.user;
+                    this.authToken = token;
+                    this.updateAuthUI();
+                } else {
+                    localStorage.removeItem('clipz_auth_token');
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                localStorage.removeItem('clipz_auth_token');
+            }
+        }
+    }
+
+    updateAuthUI() {
+        if (this.currentUser) {
+            document.getElementById('userInfo').style.display = 'flex';
+            document.getElementById('authButtons').style.display = 'none';
+            document.getElementById('username').textContent = this.currentUser.username;
+        } else {
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('authButtons').style.display = 'flex';
+        }
+    }
+
+    showLoginModal() {
+        document.getElementById('loginModal').classList.remove('hidden');
+    }
+
+    closeLoginModal() {
+        document.getElementById('loginModal').classList.add('hidden');
+    }
+
+    showSignupModal() {
+        document.getElementById('signupModal').classList.remove('hidden');
+    }
+
+    closeSignupModal() {
+        document.getElementById('signupModal').classList.add('hidden');
+    }
+
+    switchToSignup() {
+        this.closeLoginModal();
+        this.showSignupModal();
+    }
+
+    switchToLogin() {
+        this.closeSignupModal();
+        this.showLoginModal();
+    }
+
+    async login(event) {
+        event.preventDefault();
+        
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                this.currentUser = data.user;
+                this.authToken = data.token;
+                localStorage.setItem('clipz_auth_token', data.token);
+                this.updateAuthUI();
+                this.closeLoginModal();
+                this.showCopyNotification('Login successful!');
+            } else {
+                this.showCopyNotification(data.error || 'Login failed');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            this.showCopyNotification('Login failed. Please try again.');
+        }
+    }
+
+    async signup(event) {
+        event.preventDefault();
+        
+        const username = document.getElementById('signupUsername').value;
+        const email = document.getElementById('signupEmail').value;
+        const password = document.getElementById('signupPassword').value;
+        
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                this.currentUser = data.user;
+                this.authToken = data.token;
+                localStorage.setItem('clipz_auth_token', data.token);
+                this.updateAuthUI();
+                this.closeSignupModal();
+                this.showCopyNotification('Account created successfully!');
+            } else {
+                this.showCopyNotification(data.error || 'Registration failed');
+            }
+        } catch (error) {
+            console.error('Signup error:', error);
+            this.showCopyNotification('Registration failed. Please try again.');
+        }
+    }
+
+    logout() {
+        this.currentUser = null;
+        this.authToken = null;
+        localStorage.removeItem('clipz_auth_token');
+        this.updateAuthUI();
+        this.showCopyNotification('Logged out successfully');
+    }
+
+    getAuthHeaders() {
+        if (!this.authToken) {
+            throw new Error('Not authenticated');
+        }
+        return {
+            'Authorization': `Bearer ${this.authToken}`,
+            'Content-Type': 'application/json'
+        };
+    }
+
     async connectSocial(platform) {
         const card = document.querySelector(`[data-platform="${platform}"]`);
         const button = card.querySelector('.btn-connect');
@@ -443,7 +594,7 @@ class ClipzAI {
         status.className = 'connection-status connecting';
         
         // Update header status
-        this.setHeaderStatus(platform, 'connecting');
+        this.setFooterStatus(platform, 'connecting');
         
         try {
             // Simulate connection process
@@ -461,7 +612,7 @@ class ClipzAI {
             status.className = 'connection-status connected';
             
             // Update header status
-            this.setHeaderStatus(platform, 'connected');
+            this.setFooterStatus(platform, 'connected');
             
             // Save connection status
             this.saveConnectionStatus();
@@ -479,7 +630,7 @@ class ClipzAI {
             status.className = 'connection-status disconnected';
             
             // Update header status
-            this.setHeaderStatus(platform, 'disconnected');
+            this.setFooterStatus(platform, 'disconnected');
             
             this.showCopyNotification(`Failed to connect to ${platform}. Please try again.`);
         }
@@ -533,27 +684,27 @@ class ClipzAI {
             }
         });
         
-        // Update header status indicators
-        this.updateHeaderStatus();
+        // Update footer status indicators
+        this.updateFooterStatus();
     }
 
-    updateHeaderStatus() {
+    updateFooterStatus() {
         Object.keys(this.connectedPlatforms).forEach(platform => {
-            const headerStatus = document.querySelector(`.platform-status[data-platform="${platform}"] .status-dot`);
-            if (headerStatus) {
+            const footerStatus = document.querySelector(`.platform-status[data-platform="${platform}"] .status-dot`);
+            if (footerStatus) {
                 if (this.connectedPlatforms[platform]) {
-                    headerStatus.className = 'status-dot connected';
+                    footerStatus.className = 'status-dot connected';
                 } else {
-                    headerStatus.className = 'status-dot disconnected';
+                    footerStatus.className = 'status-dot disconnected';
                 }
             }
         });
     }
 
-    setHeaderStatus(platform, status) {
-        const headerStatus = document.querySelector(`.platform-status[data-platform="${platform}"] .status-dot`);
-        if (headerStatus) {
-            headerStatus.className = `status-dot ${status}`;
+    setFooterStatus(platform, status) {
+        const footerStatus = document.querySelector(`.platform-status[data-platform="${platform}"] .status-dot`);
+        if (footerStatus) {
+            footerStatus.className = `status-dot ${status}`;
         }
     }
 
@@ -571,7 +722,7 @@ class ClipzAI {
         status.className = 'connection-status disconnected';
         
         // Update header status
-        this.setHeaderStatus(platform, 'disconnected');
+        this.setFooterStatus(platform, 'disconnected');
         
         this.saveConnectionStatus();
         this.showCopyNotification(`${platform.charAt(0).toUpperCase() + platform.slice(1)} disconnected.`);
