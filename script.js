@@ -255,6 +255,10 @@ class ClipzAI {
         document.getElementById('clipsSection').classList.remove('hidden');
         document.getElementById('socialSection').classList.remove('hidden');
         
+        // Save clips to localStorage if in offline mode
+        if (this.currentUser && this.authToken && this.authToken.startsWith('token_')) {
+            this.saveOfflineUserClips();
+        }
     }
     
     createClipCard(clip, isHistory = false) {
@@ -574,12 +578,39 @@ class ClipzAI {
                 }
             } catch (error) {
                 console.error('Auth check failed:', error);
-                localStorage.removeItem('clipz_auth_token');
+                // Try offline mode if server is not available
+                this.checkOfflineAuthStatus();
+            }
+        } else {
+            // No token, check for offline auth
+            this.checkOfflineAuthStatus();
+        }
+    }
+
+    checkOfflineAuthStatus() {
+        const token = localStorage.getItem('clipz_auth_token');
+        if (token && token.startsWith('token_')) {
+            // This is an offline token, try to find the user
+            const existingUsers = JSON.parse(localStorage.getItem('clipz_users') || '{}');
+            
+            // Find user by token (simple approach - in real app you'd store token->user mapping)
+            for (const [email, user] of Object.entries(existingUsers)) {
+                if (user.id) {
+                    this.currentUser = user;
+                    this.authToken = token;
+                    this.updateAuthUI();
+                    
+                    // Load user's clips from localStorage if available
+                    this.loadOfflineUserClips();
+                    
+                    console.log('Offline auth successful:', user);
+                    this.showCopyNotification(`Welcome back, ${user.username}! (Offline Mode)`, 'success');
+                    break;
+                }
             }
         }
     }
 
-    
     async refreshToken() {
         try {
             const response = await fetch('/api/refresh-token', {
@@ -798,7 +829,8 @@ class ClipzAI {
             }
         } catch (error) {
             console.error('Login error:', error);
-            this.showCopyNotification('Login failed. Please ensure the server is running.', 'error');
+            // Fallback to offline mode when server is not available
+            this.handleOfflineLogin(email, password);
         } finally {
             // Reset button state
             submitBtn.innerHTML = originalText;
@@ -869,7 +901,8 @@ class ClipzAI {
             }
         } catch (error) {
             console.error('Signup error:', error);
-            this.showCopyNotification('Registration failed. Please ensure the server is running.', 'error');
+            // Fallback to offline mode when server is not available
+            this.handleOfflineSignup(username, email, password);
         } finally {
             // Reset button state
             submitBtn.innerHTML = originalText;
@@ -1393,6 +1426,116 @@ class ClipzAI {
         }
     }
 
+    // Offline mode handlers (fallback when server is not available)
+    handleOfflineSignup(username, email, password) {
+        try {
+            // Check if user already exists in localStorage
+            const existingUsers = JSON.parse(localStorage.getItem('clipz_users') || '{}');
+            
+            if (existingUsers[email]) {
+                this.showCopyNotification('User already exists. Please try logging in instead.', 'error');
+                return;
+            }
+            
+            // Create user object
+            const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const user = {
+                id: userId,
+                email: email,
+                username: username,
+                isVerified: true, // Auto-verify in offline mode
+                createdAt: new Date().toISOString()
+            };
+            
+            // Store user
+            existingUsers[email] = user;
+            localStorage.setItem('clipz_users', JSON.stringify(existingUsers));
+            
+            // Create auth token
+            const token = 'token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('clipz_auth_token', token);
+            
+            // Set current user
+            this.currentUser = user;
+            this.authToken = token;
+            
+            // Initialize empty clips array
+            this.generatedClips = [];
+            this.saveOfflineUserClips();
+            
+            // Update UI
+            this.updateAuthUI();
+            this.closeSignupModal();
+            
+            // Show success message
+            this.showCopyNotification('Account created successfully! (Offline Mode)', 'success');
+            
+            console.log('Offline signup successful:', user);
+            
+        } catch (error) {
+            console.error('Offline signup error:', error);
+            this.showCopyNotification('Registration failed. Please try again.', 'error');
+        }
+    }
+
+    handleOfflineLogin(email, password) {
+        try {
+            const existingUsers = JSON.parse(localStorage.getItem('clipz_users') || '{}');
+            const user = existingUsers[email];
+            
+            if (!user) {
+                this.showCopyNotification('User not found. Please sign up first.', 'error');
+                return;
+            }
+            
+            // Create auth token
+            const token = 'token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('clipz_auth_token', token);
+            
+            // Set current user
+            this.currentUser = user;
+            this.authToken = token;
+            
+            // Load user's clips
+            this.loadOfflineUserClips();
+            
+            // Update UI
+            this.updateAuthUI();
+            this.closeLoginModal();
+            
+            // Show success message
+            this.showCopyNotification('Login successful! (Offline Mode)', 'success');
+            
+            console.log('Offline login successful:', user);
+            
+        } catch (error) {
+            console.error('Offline login error:', error);
+            this.showCopyNotification('Login failed. Please try again.', 'error');
+        }
+    }
+
+    loadOfflineUserClips() {
+        try {
+            const userClips = JSON.parse(localStorage.getItem(`clipz_user_clips_${this.currentUser.id}`) || '[]');
+            this.generatedClips = userClips;
+            this.displayClips(userClips);
+            console.log('Loaded offline user clips:', userClips.length);
+        } catch (error) {
+            console.error('Error loading offline user clips:', error);
+            this.generatedClips = [];
+        }
+    }
+
+    saveOfflineUserClips() {
+        if (this.currentUser && this.generatedClips) {
+            try {
+                localStorage.setItem(`clipz_user_clips_${this.currentUser.id}`, JSON.stringify(this.generatedClips));
+                console.log('Saved offline user clips:', this.generatedClips.length);
+            } catch (error) {
+                console.error('Error saving offline user clips:', error);
+            }
+        }
+    }
 
     // Email verification functions
     showEmailVerificationModal(email) {
