@@ -202,73 +202,104 @@ class ClipzAI {
     }
 
     displayClips(clips) {
-        const container = document.getElementById('clipsContainer');
-        container.innerHTML = '';
-
+        const clipsContainer = document.getElementById('clipsContainer');
+        const historyContainer = document.getElementById('historyContainer');
+        
+        // Clear both containers
+        clipsContainer.innerHTML = '';
+        historyContainer.innerHTML = '';
+        
+        if (clips.length === 0) {
+            clipsContainer.innerHTML = '<p class="no-clips">No clips generated yet. Analyze a video to get started!</p>';
+            historyContainer.innerHTML = '<p class="no-clips">No clip history yet. Generate some clips to see them here!</p>';
+            return;
+        }
+        
+        // Display recent clips in main section (last 3)
+        const recentClips = clips.slice(-3);
+        recentClips.forEach(clip => {
+            const clipCard = this.createClipCard(clip);
+            clipsContainer.appendChild(clipCard);
+        });
+        
+        // Display all clips in history section
         clips.forEach(clip => {
-            const clipCard = document.createElement('div');
-            
-            // Apply viral score styling
-            let viralClass = '';
-            if (clip.viralScore) {
-                if (clip.viralScore >= 0.8) {
-                    viralClass = 'high-viral';
-                } else if (clip.viralScore >= 0.6) {
-                    viralClass = 'medium-viral';
-                } else {
-                    viralClass = 'low-viral';
-                }
-            }
-            
-            clipCard.className = `clip-card ${viralClass}`;
-            clipCard.innerHTML = `
-                <button class="preview-btn" onclick="clipzAI.previewClip(${clip.id})" title="Preview Clip">
-                    <i class="fas fa-play"></i>
-                </button>
-                <div class="clip-preview">
-                    <i class="fas fa-video" style="font-size: 3rem; color: #667eea;"></i>
-                </div>
-                <div class="clip-title">${clip.title}</div>
-                <div class="clip-caption-container">
-                    <div class="clip-caption">${clip.caption}</div>
-                    <button class="btn btn-tiny btn-copy" onclick="clipzAI.copyClipCaption(${clip.id})" title="Copy Caption">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                </div>
-                <div class="clip-meta">
-                    <div class="clip-timing">
-                        <small>${clip.startTime} - ${clip.endTime}</small>
-                    </div>
-                    ${clip.viralScore ? `
-                        <div class="viral-score">
-                            <span class="viral-label">Viral Score:</span>
-                            <span class="viral-value">${Math.round(clip.viralScore * 100)}%</span>
-                            <div class="viral-bar">
-                                <div class="viral-fill" style="width: ${clip.viralScore * 100}%"></div>
-                            </div>
-                        </div>
-                    ` : ''}
-                    ${clip.pattern ? `
-                        <div class="viral-pattern">
-                            <span class="pattern-label">Pattern:</span>
-                            <span class="pattern-value">${clip.pattern.type.replace('_', ' ').toUpperCase()}</span>
-                        </div>
-                    ` : ''}
-                </div>
-                <div class="clip-actions">
-                    <button class="btn btn-small btn-download" onclick="clipzAI.downloadClip(${clip.id})">
-                        <i class="fas fa-download"></i> Download
-                    </button>
-                    <button class="btn btn-small btn-upload" onclick="clipzAI.selectClip(${clip.id})">
-                        <i class="fas fa-upload"></i> Upload
-                    </button>
-                </div>
-            `;
-            container.appendChild(clipCard);
+            const clipCard = this.createClipCard(clip, true); // true for history version
+            historyContainer.appendChild(clipCard);
         });
 
         document.getElementById('clipsSection').classList.remove('hidden');
         document.getElementById('socialSection').classList.remove('hidden');
+    }
+    
+    createClipCard(clip, isHistory = false) {
+        const clipCard = document.createElement('div');
+        
+        // Apply viral score styling
+        let viralClass = '';
+        if (clip.viralScore) {
+            if (clip.viralScore >= 0.8) {
+                viralClass = 'high-viral';
+            } else if (clip.viralScore >= 0.6) {
+                viralClass = 'medium-viral';
+            } else {
+                viralClass = 'low-viral';
+            }
+        }
+        
+        clipCard.className = `clip-card ${viralClass}`;
+        
+        const createdAt = isHistory ? `<div class="clip-date"><small>Created: ${new Date(clip.createdAt).toLocaleDateString()}</small></div>` : '';
+        const deleteButton = isHistory ? `<button class="btn btn-small btn-danger" onclick="clipzAI.deleteClip('${clip.id}')">
+            <i class="fas fa-trash"></i> Delete
+        </button>` : '';
+        
+        clipCard.innerHTML = `
+            <button class="preview-btn" onclick="clipzAI.previewClip(${clip.id})" title="Preview Clip">
+                <i class="fas fa-play"></i>
+            </button>
+            <div class="clip-preview">
+                <i class="fas fa-video" style="font-size: 3rem; color: #667eea;"></i>
+            </div>
+            <div class="clip-title">${clip.title}</div>
+            <div class="clip-caption-container">
+                <div class="clip-caption">${clip.caption}</div>
+                <button class="btn btn-tiny btn-copy" onclick="clipzAI.copyClipCaption(${clip.id})" title="Copy Caption">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <div class="clip-meta">
+                <div class="clip-timing">
+                    <small>${clip.startTime} - ${clip.endTime}</small>
+                </div>
+                ${createdAt}
+                ${clip.viralScore ? `
+                    <div class="viral-score">
+                        <span class="viral-label">Viral Score:</span>
+                        <span class="viral-value">${Math.round(clip.viralScore * 100)}%</span>
+                        <div class="viral-bar">
+                            <div class="viral-fill" style="width: ${clip.viralScore * 100}%"></div>
+                        </div>
+                    </div>
+                ` : ''}
+                ${clip.pattern ? `
+                    <div class="viral-pattern">
+                        <span class="pattern-label">Pattern:</span>
+                        <span class="pattern-value">${clip.pattern.type.replace('_', ' ').toUpperCase()}</span>
+                    </div>
+                ` : ''}
+            </div>
+            <div class="clip-actions">
+                <button class="btn btn-small btn-download" onclick="clipzAI.downloadClip(${clip.id})">
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <button class="btn btn-small btn-upload" onclick="clipzAI.selectClip(${clip.id})">
+                    <i class="fas fa-upload"></i> Upload
+                </button>
+                ${deleteButton}
+            </div>
+        `;
+        return clipCard;
     }
 
     selectClip(clipId) {
@@ -504,6 +535,15 @@ class ClipzAI {
                     
                     // Load social connection status for authenticated users
                     await this.loadSocialConnections();
+                    
+                    // Load user's clips history
+                    await this.loadUserClips();
+                    
+                    // Show welcome back message
+                    this.showCopyNotification(`Welcome back, ${this.currentUser.username}!`);
+                } else if (response.status === 401) {
+                    // Token expired, try to refresh
+                    await this.refreshToken();
                 } else {
                     localStorage.removeItem('clipz_auth_token');
                 }
@@ -511,6 +551,36 @@ class ClipzAI {
                 console.error('Auth check failed:', error);
                 localStorage.removeItem('clipz_auth_token');
             }
+        }
+    }
+    
+    async refreshToken() {
+        try {
+            const response = await fetch('/api/refresh-token', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.currentUser = data.user;
+                this.authToken = data.token;
+                localStorage.setItem('clipz_auth_token', data.token);
+                this.updateAuthUI();
+                await this.loadSocialConnections();
+                await this.loadUserClips();
+            } else {
+                localStorage.removeItem('clipz_auth_token');
+                this.currentUser = null;
+                this.authToken = null;
+            }
+        } catch (error) {
+            console.error('Token refresh failed:', error);
+            localStorage.removeItem('clipz_auth_token');
+            this.currentUser = null;
+            this.authToken = null;
         }
     }
     
@@ -529,6 +599,22 @@ class ClipzAI {
             console.error('Error loading social connections:', error);
         }
     }
+    
+    async loadUserClips() {
+        try {
+            const response = await fetch('/api/my-clips', {
+                headers: this.getAuthHeaders()
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.generatedClips = data;
+                this.displayClips(data);
+            }
+        } catch (error) {
+            console.error('Error loading user clips:', error);
+        }
+    }
 
     updateAuthUI() {
         if (this.currentUser) {
@@ -536,10 +622,12 @@ class ClipzAI {
             document.getElementById('authButtons').style.display = 'none';
             document.getElementById('username').textContent = this.currentUser.username;
             document.getElementById('authRequiredNotice').classList.add('hidden');
+            document.getElementById('userHistorySection').classList.remove('hidden');
         } else {
             document.getElementById('userInfo').style.display = 'none';
             document.getElementById('authButtons').style.display = 'flex';
             document.getElementById('authRequiredNotice').classList.remove('hidden');
+            document.getElementById('userHistorySection').classList.add('hidden');
         }
     }
 
@@ -1007,6 +1095,39 @@ class ClipzAI {
         } catch (error) {
             console.error('Upload API error:', error);
             throw error;
+        }
+    }
+    
+    async deleteClip(clipId) {
+        if (!this.currentUser) {
+            this.showCopyNotification('Please login to manage clips', 'error');
+            return;
+        }
+        
+        if (!confirm('Are you sure you want to delete this clip? This action cannot be undone.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/clips/${clipId}`, {
+                method: 'DELETE',
+                headers: this.getAuthHeaders()
+            });
+            
+            if (response.ok) {
+                // Remove from local array
+                this.generatedClips = this.generatedClips.filter(clip => clip.id !== clipId);
+                
+                // Refresh display
+                this.displayClips(this.generatedClips);
+                
+                this.showCopyNotification('Clip deleted successfully');
+            } else {
+                this.showCopyNotification('Failed to delete clip', 'error');
+            }
+        } catch (error) {
+            console.error('Delete clip error:', error);
+            this.showCopyNotification('Failed to delete clip', 'error');
         }
     }
 

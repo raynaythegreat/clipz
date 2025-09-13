@@ -75,7 +75,7 @@ app.post('/api/register', async (req, res) => {
         users.set(email, user);
         userClips.set(userId, []);
         
-        const token = jwt.sign({ userId, email, username }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign({ userId, email, username }, JWT_SECRET, { expiresIn: '30d' });
         
         res.json({
             token,
@@ -111,7 +111,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
         
-        const token = jwt.sign({ userId: user.id, email, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign({ userId: user.id, email, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
         
         res.json({
             token,
@@ -143,6 +143,37 @@ app.get('/api/profile', authenticateToken, (req, res) => {
             createdAt: user.createdAt
         }
     });
+});
+
+// Token refresh endpoint
+app.post('/api/refresh-token', authenticateToken, (req, res) => {
+    try {
+        const user = users.get(req.user.email);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Generate new token
+        const newToken = jwt.sign(
+            { userId: user.id, email: user.email, username: user.username }, 
+            JWT_SECRET, 
+            { expiresIn: '30d' }
+        );
+        
+        res.json({
+            token: newToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                createdAt: user.createdAt
+            }
+        });
+        
+    } catch (error) {
+        console.error('Token refresh error:', error);
+        res.status(500).json({ error: 'Failed to refresh token' });
+    }
 });
 
 // API endpoint to analyze video

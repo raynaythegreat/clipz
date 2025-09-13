@@ -1281,6 +1281,40 @@ footer {
     font-size: 0.9rem;
 }
 
+/* User History Section */
+.user-history-section {
+    margin-bottom: 40px;
+}
+
+.user-history-section .section-header h2 {
+    color: white;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.user-history-section .section-header p {
+    color: rgba(255, 255, 255, 0.8);
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.clip-date {
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
 /* Copy Notification */
 .copy-notification {
     position: fixed;
