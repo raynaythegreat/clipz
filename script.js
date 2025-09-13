@@ -254,6 +254,11 @@ class ClipzAI {
 
         document.getElementById('clipsSection').classList.remove('hidden');
         document.getElementById('socialSection').classList.remove('hidden');
+        
+        // Save clips to localStorage if in offline mode
+        if (this.currentUser && this.authToken && this.authToken.startsWith('token_')) {
+            this.saveOfflineUserClips();
+        }
     }
     
     createClipCard(clip, isHistory = false) {
@@ -594,9 +599,37 @@ class ClipzAI {
                     this.currentUser = user;
                     this.authToken = token;
                     this.updateAuthUI();
+                    
+                    // Load user's clips from localStorage if available
+                    this.loadOfflineUserClips();
+                    
                     console.log('Offline auth successful:', user);
+                    this.showCopyNotification(`Welcome back, ${user.username}! (Offline Mode)`, 'success');
                     break;
                 }
+            }
+        }
+    }
+
+    loadOfflineUserClips() {
+        try {
+            const userClips = JSON.parse(localStorage.getItem(`clipz_user_clips_${this.currentUser.id}`) || '[]');
+            this.generatedClips = userClips;
+            this.displayClips(userClips);
+            console.log('Loaded offline user clips:', userClips.length);
+        } catch (error) {
+            console.error('Error loading offline user clips:', error);
+            this.generatedClips = [];
+        }
+    }
+
+    saveOfflineUserClips() {
+        if (this.currentUser && this.generatedClips) {
+            try {
+                localStorage.setItem(`clipz_user_clips_${this.currentUser.id}`, JSON.stringify(this.generatedClips));
+                console.log('Saved offline user clips:', this.generatedClips.length);
+            } catch (error) {
+                console.error('Error saving offline user clips:', error);
             }
         }
     }
@@ -725,6 +758,46 @@ class ClipzAI {
     switchToLogin() {
         this.closeSignupModal();
         this.showLoginModal();
+    }
+
+    logout() {
+        try {
+            // Store user ID before clearing
+            const userId = this.currentUser ? this.currentUser.id : null;
+            
+            // Clear authentication data
+            this.currentUser = null;
+            this.authToken = null;
+            this.connectedPlatforms = {};
+            this.generatedClips = [];
+            
+            // Clear localStorage
+            localStorage.removeItem('clipz_auth_token');
+            
+            // Clear user-specific clips if user was logged in
+            if (userId) {
+                localStorage.removeItem(`clipz_user_clips_${userId}`);
+            }
+            
+            // Note: We don't clear 'clipz_users' as other users might be using the same device
+            
+            // Update UI
+            this.updateAuthUI();
+            this.updateConnectionUI();
+            
+            // Clear any displayed clips
+            document.getElementById('clipsContainer').innerHTML = '<p class="no-clips">No clips generated yet. Analyze a video to get started!</p>';
+            document.getElementById('historyContainer').innerHTML = '<p class="no-clips">No clip history yet. Generate some clips to see them here!</p>';
+            
+            // Show success message
+            this.showCopyNotification('Logged out successfully!', 'success');
+            
+            console.log('User logged out successfully');
+            
+        } catch (error) {
+            console.error('Logout error:', error);
+            this.showCopyNotification('Logout failed. Please try again.', 'error');
+        }
     }
 
     async login(event) {
@@ -1405,6 +1478,10 @@ class ClipzAI {
             this.currentUser = user;
             this.authToken = token;
             
+            // Initialize empty clips array
+            this.generatedClips = [];
+            this.saveOfflineUserClips();
+            
             // Update UI
             this.updateAuthUI();
             this.closeSignupModal();
@@ -1437,6 +1514,9 @@ class ClipzAI {
             // Set current user
             this.currentUser = user;
             this.authToken = token;
+            
+            // Load user's clips
+            this.loadOfflineUserClips();
             
             // Update UI
             this.updateAuthUI();
